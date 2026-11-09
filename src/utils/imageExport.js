@@ -1,4 +1,34 @@
 /**
+ * 为盐场和蟠桃园战绩生成完整宽度的截图选项。
+ * 仅调整 html2canvas 的克隆节点，保持页面上的滚动和布局不变。
+ */
+export const getBattleReportCaptureOptions = () => ({
+  scale: 2,
+  useCORS: true,
+  backgroundColor: "#ffffff",
+  logging: false,
+  windowWidth: 1440,
+  onclone(_doc, report) {
+    report.style.width = "1200px";
+    report.style.maxWidth = "none";
+    report.style.height = "auto";
+    report.style.maxHeight = "none";
+    report.style.overflow = "visible";
+
+    report
+      .querySelectorAll(
+        ".members-table-wrapper, .style1-table-container, .style2-table-wrapper",
+      )
+      .forEach((wrapper) => {
+        wrapper.scrollLeft = 0;
+        wrapper.style.width = "100%";
+        wrapper.style.overflow = "visible";
+        wrapper.style.maxHeight = "none";
+      });
+  },
+});
+
+/**
  * 将Canvas导出为图片并下载
  * 兼容处理移动端大图导出问题
  * @param {HTMLCanvasElement} canvas - canvas元素

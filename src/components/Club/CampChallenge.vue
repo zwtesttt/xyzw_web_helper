@@ -1,5 +1,5 @@
 <template>
-  <div class="camp-challenge-container" ref="exportDom">
+  <div class="camp-challenge-container battle-responsive-page" ref="exportDom">
     <!-- 顶部操作工具栏 -->
     <div class="toolbar">
       <div class="left">
@@ -334,6 +334,17 @@
           </div>
         </n-tab>
       </n-tabs>
+      <select
+        v-model="activeViewTab"
+        class="camp-mobile-view-select"
+        aria-label="选择营地挑战视图"
+        style="display: none"
+      >
+        <option value="battleMap">今日据点沙盘</option>
+        <option value="todayDetails">今日公会对战详细</option>
+        <option value="weekRoster">当周全员战绩与排位</option>
+        <option value="lineupTable">详细武将布阵大表</option>
+      </select>
     </div>
 
     <!-- 加载状态 -->
@@ -983,6 +994,7 @@
       :style="{ width: '740px' }"
       :bordered="false"
       :segmented="{ content: 'soft', footer: 'soft' }"
+      class="battle-responsive-modal"
     >
       <template #header-extra>
         <span v-if="targetPlayer" class="player-id">

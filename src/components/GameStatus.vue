@@ -8,7 +8,9 @@
         activeSection === 'campChallengeGroup' ||
         activeSection === 'apexChallengeGroup' ||
         activeSection === 'peachGroup' ||
-        activeSection === 'rankGroup',
+        activeSection === 'rankGroup' ||
+        activeSection === 'starChallenge' ||
+        activeSection === 'tenPalace',
       'club-mode': activeSection === 'club',
     }"
   >
@@ -17,7 +19,7 @@
 
     <!-- 下方选卡分区切换（Tabs）：日常｜俱乐部｜活动 -->
     <n-tabs
-      class="section-tabs"
+      class="section-tabs desktop-section-tabs"
       v-model:value="activeSection"
       type="line"
       animated
@@ -33,7 +35,44 @@
       <n-tab-pane name="peachGroup" tab="蟠桃园" />
       <n-tab-pane name="rankGroup" tab="排行榜" />
       <n-tab-pane name="fightPvp" tab="切磋" />
+      <n-tab-pane name="starChallenge" tab="星级挑战" />
+      <n-tab-pane name="tenPalace" tab="十殿挑战" />
     </n-tabs>
+
+    <div class="mobile-game-navigation">
+      <div class="mobile-game-selector">
+        <label for="mobile-game-section">游戏功能</label>
+        <select
+          id="mobile-game-section"
+          v-model="activeSection"
+          class="mobile-navigation-select"
+        >
+          <option
+            v-for="option in gameSectionOptions"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
+      <div class="mobile-report-shortcuts">
+        <n-button
+          type="primary"
+          class="mobile-report-shortcut"
+          @click="openSaltBattleRecords"
+        >
+          盐场战绩
+        </n-button>
+        <n-button
+          type="primary"
+          class="mobile-report-shortcut"
+          @click="openPeachBattleRecords"
+        >
+          蟠桃园战绩
+        </n-button>
+      </div>
+    </div>
 
     <!-- 阵容（仅日常） -->
     <TeamFormation v-show="activeSection === 'daily'" />
@@ -185,10 +224,20 @@
       <CampChallenge />
     </div>
 
+    <div
+      class="star-challenge-group"
+      v-if="activeSection === 'starChallenge'"
+    >
+      <StarChallenge />
+    </div>
+    <div v-if="activeSection === 'tenPalace'" class="ten-palace-group">
+      <TenPalace />
+    </div>
+
     <!-- 盐场分组（包含盐场、周战绩、月战绩） -->
     <div class="salt-field-group" v-if="activeSection === 'saltFieldGroup'">
       <div
-        class="sub-nav"
+        class="sub-nav salt-field-sub-nav"
         style="
           padding: 8px;
           background: var(--n-color);
@@ -196,7 +245,24 @@
           justify-content: center;
         "
       >
+        <div class="mobile-salt-selector">
+          <label for="mobile-salt-section">盐场内容</label>
+          <select
+            id="mobile-salt-section"
+            v-model="saltFieldSubTab"
+            class="mobile-navigation-select"
+          >
+            <option
+              v-for="option in saltFieldOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
         <n-tabs
+          class="desktop-salt-tabs"
           type="segment"
           animated
           v-model:value="saltFieldSubTab"
@@ -267,7 +333,7 @@
     <!-- 蟠桃园分组 -->
     <div class="peach-group" v-if="activeSection === 'peachGroup'">
       <div
-        class="sub-nav"
+        class="sub-nav peach-sub-nav"
         style="
           padding: 8px;
           background: var(--n-color);
@@ -276,6 +342,7 @@
         "
       >
         <n-tabs
+          class="peach-sub-tabs"
           type="segment"
           animated
           v-model:value="peachSubTab"
@@ -368,6 +435,7 @@
 <script setup>
 import { useMessage } from "naive-ui";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { useRoute } from "vue-router";
 import { useTokenStore } from "@/stores/tokenStore";
 
 import ApexChallenge from "./Apex/ApexChallenge.vue";
@@ -402,11 +470,14 @@ import LegionWarStatistics from "./Club/LegionWarStatistics.vue";
 import PeachBattleRecords from "./Club/PeachBattleRecords.vue";
 import PeachInfo from "./Club/PeachInfo.vue";
 import PeachInfoV2 from "./Club/PeachInfoV2.vue";
+import StarChallenge from "./Nightmare/StarChallenge.vue";
+import TenPalace from "./Nightmare/TenPalace.vue";
 import BossTower from "./Tower/BossTower.vue";
 import TowerStatus from "./Tower/TowerStatus.vue";
 import WeirdTowerStatus from "./Tower/WeirdTowerStatus.vue";
 
 const tokenStore = useTokenStore();
+const route = useRoute();
 useMessage();
 
 const legionMatch = ref({
@@ -415,7 +486,10 @@ const legionMatch = ref({
 
 // 响应式数据
 
-const activeSection = ref("daily");
+const activeSection = ref(route.query.feature === "tenPalace" ? "tenPalace" : "daily");
+watch(() => route.query.feature, (feature) => {
+  if (feature === "tenPalace") activeSection.value = "tenPalace";
+});
 const saltFieldSubTab = ref("warrank");
 const peachSubTab = ref("peach");
 const rankSubTab = ref("serverrank");
@@ -576,6 +650,35 @@ const startTimer = () => {
 const ENABLE_LEGION_MATCH = false;
 const ENABLE_LEGION_SIGNIN_CARD = false;
 const ENABLE_TOOLS_TAB = true; // 工具分区开关
+const gameSectionOptions = [
+  { label: "日常", value: "daily" },
+  { label: "俱乐部", value: "club" },
+  { label: "活动", value: "activity" },
+  ...(ENABLE_TOOLS_TAB ? [{ label: "工具", value: "tools" }] : []),
+  { label: "逐鹿盐山", value: "apexChallengeGroup" },
+  { label: "营地挑战", value: "campChallengeGroup" },
+  { label: "盐场", value: "saltFieldGroup" },
+  { label: "蟠桃园", value: "peachGroup" },
+  { label: "排行榜", value: "rankGroup" },
+  { label: "切磋", value: "fightPvp" },
+  { label: "星级挑战", value: "starChallenge" },
+  { label: "十殿挑战", value: "tenPalace" },
+];
+const saltFieldOptions = [
+  { label: "盐场", value: "warrank" },
+  { label: "本周盐场战绩", value: "weekBattle" },
+  { label: "本月盐场战绩", value: "monthBattle" },
+  { label: "盐场地图", value: "legionWarMap" },
+  { label: "盐场战况", value: "legionWarStatistics" },
+];
+const openSaltBattleRecords = () => {
+  activeSection.value = "saltFieldGroup";
+  saltFieldSubTab.value = "weekBattle";
+};
+const openPeachBattleRecords = () => {
+  activeSection.value = "peachGroup";
+  peachSubTab.value = "peachBattle";
+};
 
 // 盐场战绩入口已移动至俱乐部信息模块
 
@@ -681,6 +784,18 @@ onUnmounted(() => {
   }
 }
 
+.star-challenge-group {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ten-palace-group {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .game-status-container.club-mode {
   @media (min-width: 1400px) {
     grid-template-columns: repeat(2, 1fr);
@@ -707,26 +822,148 @@ onUnmounted(() => {
 }
 
 .section-tabs {
-  margin: 0 var(--spacing-sm) var(--spacing-md) var(--spacing-sm);
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  margin: 0 0 var(--spacing-sm) 0;
+  padding: 4px var(--spacing-xs);
   grid-column: 1 / -1;
+  background: var(--bg-primary, #ffffff);
   border-bottom: 1px solid var(--border-light);
+  border-radius: 10px 10px 0 0;
   overflow: auto;
+}
+
+.section-tabs :deep(.n-tabs-tab) {
+  padding: 9px 12px !important;
+  font-weight: 600;
 }
 
 .section-tabs :deep(.n-tabs-pane-wrapper) {
   display: none;
 }
 
+.mobile-game-navigation,
+.mobile-salt-selector {
+  display: none;
+}
+
+.mobile-navigation-select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--border-radius-medium);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  font: inherit;
+}
+
+.mobile-navigation-select:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .desktop-section-tabs {
+    display: none;
+  }
+
+  .mobile-game-navigation {
+    display: grid;
+    grid-column: 1 / -1;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius-medium);
+  }
+
+  .mobile-game-selector,
+  .salt-field-sub-nav .mobile-salt-selector {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--spacing-sm);
+    min-width: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .mobile-report-shortcuts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-sm);
+  }
+
+  .mobile-report-shortcut {
+    width: 100%;
+    min-height: 44px;
+    white-space: normal;
+  }
+
+  .salt-field-sub-nav {
+    min-width: 0;
+  }
+
+  .salt-field-sub-nav .mobile-salt-selector {
+    width: 100%;
+  }
+
+  .desktop-salt-tabs {
+    display: none;
+  }
+
+  .salt-field-group,
+  .peach-group,
+  .rank-group,
+  .camp-challenge-group,
+  .apex-challenge-group,
+  .star-challenge-group,
+  .warrank-full-container {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .peach-sub-nav {
+    min-width: 0;
+  }
+
+  .peach-sub-nav .peach-sub-tabs {
+    width: 100%;
+  }
+
+  .peach-sub-nav .peach-sub-tabs :deep(.n-tabs-nav-scroll-content) {
+    width: 100%;
+  }
+
+  .peach-sub-nav .peach-sub-tabs :deep(.n-tabs-tab-wrapper) {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .peach-sub-nav .peach-sub-tabs :deep(.n-tabs-tab) {
+    min-height: 44px;
+    box-sizing: border-box;
+    justify-content: center;
+    padding-inline: 8px;
+  }
+}
+
 .warrank-full-container {
   grid-column: 1 / -1;
   width: 100%;
-  height: calc(100vh - 200px);
-  min-height: 600px;
-  overflow: hidden;
+  min-height: 480px;
+  height: auto;
+  overflow-x: auto;
+  overflow-y: visible;
 
   @media (max-width: 768px) {
-    height: calc(100vh - 180px);
-    min-height: 500px;
+    min-height: 420px;
+    height: auto;
   }
 }
 
@@ -734,12 +971,12 @@ onUnmounted(() => {
 .warrank-full-container.style2-container {
   position: relative;
   z-index: 1;
-  height: calc(100vh - 180px);
-  min-height: 700px;
+  min-height: 560px;
+  height: auto;
 
   @media (max-width: 768px) {
-    height: calc(100vh - 180px);
-    min-height: 500px;
+    min-height: 440px;
+    height: auto;
   }
 }
 

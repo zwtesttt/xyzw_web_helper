@@ -1,5 +1,5 @@
 <template>
-  <div class="multi-game-page">
+  <div class="multi-game-page" :class="{ 'multi-game-page--embedded': props.embedded }">
     <header class="multi-game-toolbar">
       <button class="toolbar-button" type="button" @click="goToTokens">
         ← 返回 Token 管理
@@ -40,7 +40,69 @@
           </a>
         </div>
       </NPopover>
+      <button
+        v-if="props.embedded"
+        class="immersive-desktop-toggle"
+        type="button"
+        :aria-pressed="props.immersive"
+        @click="emit('toggleImmersive')"
+      >
+        {{ props.immersive ? "退出沉浸" : "沉浸全屏" }}
+      </button>
     </header>
+
+    <div
+      v-if="frames.length"
+      class="mobile-game-selector"
+      :class="{ 'has-fullscreen': props.embedded }"
+    >
+      <button
+        class="mobile-game-selector__step"
+        type="button"
+        aria-label="上一个游戏账号"
+        :disabled="activeFrameIndex <= 0"
+        @click="selectAdjacentFrame(-1)"
+      >
+        ‹
+      </button>
+      <div class="mobile-game-selector__field">
+        <label for="multi-game-mobile-account" class="visually-hidden">
+          当前游戏账号
+        </label>
+        <select
+          id="multi-game-mobile-account"
+          v-model="activeMobileScopeId"
+          aria-label="当前游戏账号"
+        >
+          <option
+            v-for="frame in orderedFrames"
+            :key="frame.scopeId"
+            :value="frame.scopeId"
+          >
+            {{ frame.name }} · {{ statusLabel(frame.scopeId) }}
+          </option>
+        </select>
+      </div>
+      <button
+        class="mobile-game-selector__step"
+        type="button"
+        aria-label="下一个游戏账号"
+        :disabled="activeFrameIndex < 0 || activeFrameIndex >= orderedFrames.length - 1"
+        @click="selectAdjacentFrame(1)"
+      >
+        ›
+      </button>
+      <button
+        v-if="props.embedded"
+        class="mobile-game-selector__fullscreen"
+        type="button"
+        :aria-label="props.immersive ? '退出沉浸全屏' : '进入沉浸全屏'"
+        :aria-pressed="props.immersive"
+        @click="emit('toggleImmersive')"
+      >
+        {{ props.immersive ? "退出" : "全屏" }}
+      </button>
+    </div>
 
     <main
       v-if="frames.length"
@@ -52,7 +114,15 @@
         v-for="frame in frames"
         :key="frame.scopeId"
         class="game-panel"
+        :class="{
+          'game-panel--inactive-mobile':
+            isMobile && frame.scopeId !== activeMobileScopeId,
+        }"
         :style="{ order: frame.order }"
+        :aria-hidden="
+          isMobile && frame.scopeId !== activeMobileScopeId ? 'true' : undefined
+        "
+        :inert="isMobile && frame.scopeId !== activeMobileScopeId"
       >
         <header class="game-panel-header">
           <span class="account-name" :title="frame.name">{{ frame.name }}</span>
@@ -164,6 +234,7 @@ import {
   ref,
 } from "vue";
 import { useRouter } from "vue-router";
+import { useWorkspaceNavigation } from "@/composables/useWorkspaceNavigation";
 import {
   buildMultiGameFrameSrc,
   closeMultiGameSession,
@@ -172,7 +243,10 @@ import {
   resolveMultiGameFrameMessage,
 } from "@/utils/gameLauncher";
 
+const props = defineProps({ embedded: Boolean, immersive: Boolean });
+const emit = defineEmits(["toggleImmersive"]);
 const router = useRouter();
+const workspaceNavigation = useWorkspaceNavigation(router);
 const FRAME_LOAD_TIMEOUT_MS = 45_000;
 const launch = ref(readLaunchSafely());
 const gameStrip = ref(null);
@@ -194,6 +268,17 @@ const frames = computed(() => {
       src: buildMultiGameFrameSrc(import.meta.env.BASE_URL, session),
     }));
 });
+const orderedFrames = computed(() =>
+  [...frames.value].sort((left, right) => left.order - right.order),
+);
+const activeMobileScopeId = ref(orderedFrames.value[0]?.scopeId || "");
+const activeFrameIndex = computed(() =>
+  orderedFrames.value.findIndex(
+    (frame) => frame.scopeId === activeMobileScopeId.value,
+  ),
+);
+const isMobile = ref(false);
+let mobileMediaQuery;
 const frameElements = new Map();
 const frameTimeouts = new Map();
 const frameStates = reactive(
@@ -396,6 +481,16 @@ async function moveFrame(scopeId, direction, event) {
 
 function closeFrame(frame) {
   try {
+    const currentOrder = orderedFrames.value;
+    const closingIndex = currentOrder.findIndex(
+      (candidate) => candidate.scopeId === frame.scopeId,
+    );
+    const nextMobileScopeId =
+      frame.scopeId === activeMobileScopeId.value
+        ? (currentOrder[closingIndex + 1]?.scopeId ||
+          currentOrder[closingIndex - 1]?.scopeId ||
+          "")
+        : activeMobileScopeId.value;
     const updatedLaunch = closeMultiGameSession({
       scopeId: frame.scopeId,
       localStorage: window.localStorage,
@@ -405,11 +500,22 @@ function closeFrame(frame) {
     frameElements.delete(frame.scopeId);
     delete frameStates[frame.scopeId];
     launch.value = updatedLaunch;
+    activeMobileScopeId.value = nextMobileScopeId;
   } catch (error) {
     console.error("Unable to close MultiGame frame:", error);
     // eslint-disable-next-line no-alert -- Preserve the existing native notification or confirmation flow.
     window.alert("关闭游戏窗口失败，请重试");
   }
+}
+
+function selectAdjacentFrame(direction) {
+  const targetIndex = activeFrameIndex.value + direction;
+  const target = orderedFrames.value[targetIndex];
+  if (target) activeMobileScopeId.value = target.scopeId;
+}
+
+function handleMobileMediaChange(event) {
+  isMobile.value = event.matches;
 }
 
 function handleMessage(event) {
@@ -426,15 +532,29 @@ function handleMessage(event) {
 }
 
 function goToTokens() {
-  router.push("/tokens");
+  workspaceNavigation.push("/tokens");
 }
 
 onBeforeMount(() => window.addEventListener("message", handleMessage));
-onMounted(() =>
-  frames.value.forEach((frame) => armFrameTimeout(frame.scopeId)),
-);
+onMounted(() => {
+  mobileMediaQuery = window.matchMedia(
+    "(max-width: 768px), (max-width: 1024px) and (max-height: 600px)",
+  );
+  isMobile.value = mobileMediaQuery.matches;
+  if (mobileMediaQuery.addEventListener) {
+    mobileMediaQuery.addEventListener("change", handleMobileMediaChange);
+  } else {
+    mobileMediaQuery.addListener(handleMobileMediaChange);
+  }
+  frames.value.forEach((frame) => armFrameTimeout(frame.scopeId));
+});
 onUnmounted(() => {
   window.removeEventListener("message", handleMessage);
+  if (mobileMediaQuery?.removeEventListener) {
+    mobileMediaQuery.removeEventListener("change", handleMobileMediaChange);
+  } else {
+    mobileMediaQuery?.removeListener(handleMobileMediaChange);
+  }
   stopStripScrollAnimation();
   for (const scopeId of frameTimeouts.keys()) clearFrameTimeout(scopeId);
 });
@@ -449,6 +569,15 @@ onUnmounted(() => {
   background: #080b12;
 }
 
+.multi-game-page--embedded {
+  position: relative;
+  inset: auto;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
 .multi-game-toolbar {
   box-sizing: border-box;
   display: flex;
@@ -460,6 +589,21 @@ onUnmounted(() => {
   white-space: nowrap;
   border-bottom: 1px solid #273244;
   background: #111827;
+}
+
+.immersive-desktop-toggle {
+  flex: none;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  color: #f8fafc;
+  background: #1e293b;
+  cursor: pointer;
+}
+
+.mobile-game-selector {
+  display: none;
 }
 
 .toolbar-button,
@@ -536,6 +680,15 @@ onUnmounted(() => {
   color: #2563eb;
   text-decoration: underline;
 }
+.multi-game-page--embedded .game-strip {
+  height: calc(100% - 52px);
+  min-height: 0;
+}
+
+.multi-game-page--embedded .empty-state {
+  height: 100%;
+}
+
 .game-strip {
   box-sizing: border-box;
   display: flex;
@@ -697,5 +850,212 @@ onUnmounted(() => {
 
 .empty-card button {
   padding: 9px 18px;
+}
+
+@media (max-width: 768px), (max-width: 1024px) and (max-height: 600px) {
+  .multi-game-page {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .multi-game-page--embedded .multi-game-toolbar {
+    display: none;
+  }
+
+  .multi-game-page:not(.multi-game-page--embedded) .multi-game-toolbar {
+    height: auto;
+    min-height: 44px;
+    flex: 0 0 44px;
+    gap: 8px;
+    padding: 4px 10px;
+    overflow: hidden;
+  }
+
+  .multi-game-page:not(.multi-game-page--embedded) .toolbar-title,
+  .multi-game-page:not(.multi-game-page--embedded) .toolbar-count,
+  .multi-game-page:not(.multi-game-page--embedded) .toolbar-warning,
+  .multi-game-page:not(.multi-game-page--embedded) .crash-help-trigger,
+  .multi-game-page:not(.multi-game-page--embedded) .immersive-desktop-toggle {
+    display: none;
+  }
+
+  .multi-game-page:not(.multi-game-page--embedded) .toolbar-button {
+    min-height: 36px;
+  }
+
+  .multi-game-page:not(.multi-game-page--embedded) .toolbar-skipped {
+    max-width: 38vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-game-selector {
+    box-sizing: border-box;
+    display: grid;
+    min-width: 0;
+    flex: 0 0 auto;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    gap: 4px;
+    padding: 4px 8px;
+    border-bottom: 1px solid #273244;
+    background: #111827;
+  }
+
+  .mobile-game-selector.has-fullscreen {
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px;
+  }
+
+  .mobile-game-selector__step,
+  .mobile-game-selector__fullscreen {
+    box-sizing: border-box;
+    min-width: 44px;
+    min-height: 44px;
+    border: 1px solid #475569;
+    border-radius: 8px;
+    color: #f8fafc;
+    background: #1e293b;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .mobile-game-selector__step {
+    padding: 0;
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .mobile-game-selector__step:disabled {
+    color: #64748b;
+    cursor: not-allowed;
+    opacity: 0.58;
+  }
+
+  .mobile-game-selector__field {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .mobile-game-selector__field .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .mobile-game-selector__field select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 20px 0 6px;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    color: #f8fafc;
+    background: #0f172a;
+    font: inherit;
+    font-size: 13px;
+  }
+
+  .mobile-game-selector__field select:focus-visible,
+  .mobile-game-selector__step:focus-visible,
+  .mobile-game-selector__fullscreen:focus-visible,
+  .game-panel-header button:focus-visible {
+    outline: 2px solid #60a5fa;
+    outline-offset: 2px;
+  }
+
+  .mobile-game-selector__fullscreen {
+    padding: 0 4px;
+    font-size: 12px;
+  }
+
+  .multi-game-page .game-strip {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .multi-game-page .game-panel {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    flex: none;
+    flex-direction: column;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .multi-game-page .game-panel--inactive-mobile {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .multi-game-page .game-panel-header {
+    min-height: 48px;
+    height: auto;
+    flex: 0 0 auto;
+    gap: 6px;
+    padding: 3px 8px;
+  }
+
+  .multi-game-page .account-name,
+  .multi-game-page .move-button {
+    display: none;
+  }
+
+  .multi-game-page .frame-status {
+    margin-right: auto;
+  }
+
+  .multi-game-page .reload-button,
+  .multi-game-page .close-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+
+  .multi-game-page .game-frame-shell {
+    position: relative;
+    width: 100%;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    aspect-ratio: auto;
+  }
+
+  .multi-game-page .game-frame {
+    width: 100%;
+    height: 100%;
+  }
+
+  .multi-game-page .empty-state {
+    box-sizing: border-box;
+    min-height: 0;
+    height: auto;
+    flex: 1 1 auto;
+    overflow: auto;
+  }
 }
 </style>

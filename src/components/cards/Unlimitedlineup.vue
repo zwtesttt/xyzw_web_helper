@@ -392,6 +392,7 @@
 
       <n-modal
         v-model:show="refineModalVisible"
+        class="equipment-refine-modal"
         preset="card"
         :title="refineModalTitle"
         style="width: 600px; max-width: 90vw"
@@ -3477,4 +3478,324 @@ onMounted(() => {
   text-align: center;
   padding: var(--spacing-lg);
 }
+
+
+@media (max-width: 768px) {
+  .lineup-container,
+  .current-team-section,
+  .heroes-grid,
+  .hero-item {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .lineup-container {
+    width: 100%;
+  }
+
+  .toolbar,
+  .team-selector {
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .toolbar :deep(.n-button),
+  .team-selector :deep(.n-button),
+  .current-team-section .hero-actions :deep(.n-button) {
+    min-height: 44px;
+  }
+
+  .current-team-section {
+    padding: var(--spacing-sm);
+  }
+
+  .current-team-section > h4 {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .current-team-section .drag-tip {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .current-team-section .heroes-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .current-team-section .hero-item {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    align-items: center;
+    width: 100%;
+    gap: var(--spacing-sm);
+  }
+
+  .current-team-section .hero-item > .hero-position {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+    width: 20px;
+    height: 20px;
+    box-sizing: border-box;
+  }
+
+  .current-team-section .hero-left {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-sm);
+    min-width: 0;
+    width: 100%;
+  }
+
+  .current-team-section .hero-left .hero-avatar {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+  }
+
+  .current-team-section .hero-avatar-info {
+    align-items: flex-start;
+    min-width: 0;
+    width: auto;
+  }
+
+  .current-team-section .hero-name-small-inline {
+    width: 100%;
+    max-width: none;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .current-team-section .hero-info {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .current-team-section .hero-fish {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .current-team-section .hero-fish-skill-inline {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .current-team-section .hero-fish-slots-inline {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .current-team-section .hero-stats {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .current-team-section .hero-stats .stat-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+    gap: var(--spacing-xs);
+  }
+
+  .current-team-section .hero-stats span {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .current-team-section .hero-actions {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: flex;
+    flex-direction: row;
+    gap: var(--spacing-sm);
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
+  }
+
+  .current-team-section .hero-actions :deep(.n-button) {
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 360px) {
+  .current-team-section {
+    padding: var(--spacing-xs);
+  }
+
+  .current-team-section .hero-item {
+    padding: var(--spacing-xs);
+  }
+}
+
+
+
+@media (max-width: 768px) {
+  :global(.n-card.equipment-refine-modal) {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
+    box-sizing: border-box;
+  }
+
+  :global(.n-card.equipment-refine-modal > .n-card-header) {
+    flex: 0 0 auto;
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  :global(.n-card.equipment-refine-modal .n-card-header__main) {
+    min-width: 0;
+    padding-right: 44px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  :global(.n-card.equipment-refine-modal .n-card-header__close) {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    place-items: center;
+    box-sizing: border-box;
+  }
+
+  :global(.n-card.equipment-refine-modal > .n-card__content) {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  :global(.n-card.equipment-refine-modal .n-spin-container) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .refine-modal-content {
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .equip-refine-section {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .equip-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    min-width: 0;
+    gap: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .equip-name,
+  .equip-level {
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .equip-level {
+    justify-self: end;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .equip-bonus {
+    grid-column: 1 / -1;
+    display: inline-block;
+    max-width: 100%;
+    min-width: 0;
+    margin-left: 0;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .slot-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    gap: var(--spacing-sm);
+  }
+
+  .slot-label {
+    grid-column: 1;
+    min-width: 0;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .slot-attr {
+    grid-column: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    min-width: 0;
+    gap: 2px var(--spacing-sm);
+  }
+
+  .attr-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .attr-value {
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .slot-empty {
+    grid-column: 2;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .slot-item :deep(.n-tag) {
+    grid-column: 3;
+    min-width: max-content;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
 </style>

@@ -1,0 +1,529 @@
+{
+  "NightMareStarConstant": {
+    "nightMareStarUnlockLevel": 8,
+    "nightMareStarOpenTime": 604800,
+    "starWheelConsumeItem1": 36997,
+    "starWheelConsumeItem2": 36998,
+    "starWheelConsumeItem3": 36999,
+    "nightMareStarMapId": 100011
+  },
+  "NightMareStarConf": {
+    "1": {
+      "bossId": 1,
+      "unlockStar": 0,
+      "legionBossLv": 6000,
+      "legionBossZhanLi": 90337477527,
+      "monsters": [
+        [
+          10001,
+          13,
+          331001
+        ],
+        [
+          1000101,
+          10,
+          3310011
+        ],
+        [
+          1000102,
+          11,
+          3310011
+        ]
+      ],
+      "legionBossShow": 10001,
+      "bossDescription": "NightMareMonster_bossDescription_01",
+      "nightMareStarConditionType": [
+        1,
+        1,
+        2
+      ],
+      "nightMareStarConditionValue": [
+        [
+          12
+        ],
+        [
+          8
+        ],
+        [
+          4
+        ]
+      ],
+      "challengeTime": 5
+    },
+    "2": {
+      "bossId": 2,
+      "unlockStar": 0,
+      "legionBossLv": 6000,
+      "legionBossZhanLi": 111395550613,
+      "monsters": [
+        [
+          10002,
+          13,
+          3310024
+        ],
+        [
+          1000201,
+          10,
+          3310021
+        ],
+        [
+          1000202,
+          11,
+          3310021
+        ]
+      ],
+      "legionBossShow": 10002,
+      "bossDescription": "NightMareMonster_bossDescription_02",
+      "nightMareStarConditionType": [
+        1,
+        1,
+        2
+      ],
+      "nightMareStarConditionValue": [
+        [
+          12
+        ],
+        [
+          8
+        ],
+        [
+          4
+        ]
+      ],
+      "challengeTime": 5
+    },
+    "3": {
+      "bossId": 3,
+      "unlockStar": 0,
+      "legionBossLv": 6000,
+      "legionBossZhanLi": 64199348337,
+      "monsters": [
+        [
+          10003,
+          26,
+          331003
+        ]
+      ],
+      "legionBossShow": 10003,
+      "bossDescription": "NightMareMonster_bossDescription_03",
+      "nightMareStarConditionType": [
+        1,
+        1,
+        2
+      ],
+      "nightMareStarConditionValue": [
+        [
+          12
+        ],
+        [
+          8
+        ],
+        [
+          4
+        ]
+      ],
+      "challengeTime": 5
+    },
+    "4": {
+      "bossId": 4,
+      "unlockStar": 0,
+      "legionBossLv": 6000,
+      "legionBossZhanLi": 70811731633,
+      "monsters": [
+        [
+          10004,
+          26,
+          3310041
+        ]
+      ],
+      "legionBossShow": 10004,
+      "bossDescription": "NightMareMonster_bossDescription_04",
+      "nightMareStarConditionType": [
+        1,
+        1,
+        2
+      ],
+      "nightMareStarConditionValue": [
+        [
+          12
+        ],
+        [
+          8
+        ],
+        [
+          4
+        ]
+      ],
+      "challengeTime": 5
+    },
+    "5": {
+      "bossId": 5,
+      "unlockStar": 0,
+      "legionBossLv": 6000,
+      "legionBossZhanLi": 121395550613,
+      "monsters": [
+        [
+          10005,
+          13,
+          331005
+        ],
+        [
+          1000501,
+          10,
+          3310051
+        ],
+        [
+          1000502,
+          11,
+          3310051
+        ]
+      ],
+      "legionBossShow": 10005,
+      "bossDescription": "NightMareMonster_bossDescription_05",
+      "nightMareStarConditionType": [
+        1,
+        1,
+        2
+      ],
+      "nightMareStarConditionValue": [
+        [
+          12
+        ],
+        [
+          8
+        ],
+        [
+          4
+        ]
+      ],
+      "challengeTime": 5
+    },
+    "6": {
+      "bossId": 6,
+      "unlockStar": 0,
+      "legionBossLv": 6000,
+      "legionBossZhanLi": 11758705452,
+      "monsters": [
+        [
+          10006,
+          13,
+          3310062
+        ]
+      ],
+      "legionBossShow": 10006,
+      "bossDescription": "NightMareMonster_bossDescription_06",
+      "nightMareStarConditionType": [
+        1,
+        1,
+        2
+      ],
+      "nightMareStarConditionValue": [
+        [
+          15
+        ],
+        [
+          10
+        ],
+        [
+          5
+        ]
+      ],
+      "challengeTime": 5
+    },
+    "7": {
+      "bossId": 7,
+      "unlockStar": 0,
+      "legionBossLv": 6000,
+      "legionBossZhanLi": 212431321889,
+      "monsters": [
+        [
+          10007,
+          26,
+          331007
+        ]
+      ],
+      "legionBossShow": 10007,
+      "bossDescription": "NightMareMonster_bossDescription_07",
+      "nightMareStarConditionType": [
+        1,
+        1,
+        2
+      ],
+      "nightMareStarConditionValue": [
+        [
+          15
+        ],
+        [
+          10
+        ],
+        [
+          5
+        ]
+      ],
+      "challengeTime": 5
+    },
+    "8": {
+      "bossId": 8,
+      "unlockStar": 0,
+      "legionBossLv": 6000,
+      "legionBossZhanLi": 192431321889,
+      "monsters": [
+        [
+          10008,
+          13,
+          331008
+        ]
+      ],
+      "legionBossShow": 10008,
+      "bossDescription": "NightMareMonster_bossDescription_08",
+      "nightMareStarConditionType": [
+        1,
+        1,
+        2
+      ],
+      "nightMareStarConditionValue": [
+        [
+          15
+        ],
+        [
+          10
+        ],
+        [
+          5
+        ]
+      ],
+      "challengeTime": 5
+    }
+  },
+  "NightMareStarBookConf": {
+    "1": {
+      "id": 1,
+      "start": 0,
+      "stage": 2,
+      "itemBonus": [
+        {
+          "type": 57,
+          "itemId": 36997,
+          "weight": 1,
+          "value": 1
+        }
+      ]
+    },
+    "2": {
+      "id": 2,
+      "start": 2,
+      "stage": 4,
+      "itemBonus": [
+        {
+          "type": 57,
+          "itemId": 36997,
+          "weight": 1,
+          "value": 1
+        }
+      ]
+    },
+    "3": {
+      "id": 3,
+      "start": 4,
+      "stage": 6,
+      "itemBonus": [
+        {
+          "type": 57,
+          "itemId": 36997,
+          "weight": 1,
+          "value": 1
+        }
+      ]
+    },
+    "4": {
+      "id": 4,
+      "start": 6,
+      "stage": 8,
+      "itemBonus": [
+        {
+          "type": 57,
+          "itemId": 36998,
+          "weight": 1,
+          "value": 1
+        }
+      ]
+    },
+    "5": {
+      "id": 5,
+      "start": 8,
+      "stage": 10,
+      "itemBonus": [
+        {
+          "type": 57,
+          "itemId": 36997,
+          "weight": 1,
+          "value": 2
+        }
+      ]
+    },
+    "6": {
+      "id": 6,
+      "start": 10,
+      "stage": 12,
+      "itemBonus": [
+        {
+          "type": 57,
+          "itemId": 36998,
+          "weight": 1,
+          "value": 1
+        }
+      ]
+    },
+    "7": {
+      "id": 7,
+      "start": 12,
+      "stage": 15,
+      "itemBonus": [
+        {
+          "type": 57,
+          "itemId": 36999,
+          "weight": 1,
+          "value": 1
+        }
+      ]
+    },
+    "8": {
+      "id": 8,
+      "start": 15,
+      "stage": 18,
+      "itemBonus": [
+        {
+          "type": 57,
+          "itemId": 36998,
+          "weight": 1,
+          "value": 2
+        }
+      ]
+    },
+    "9": {
+      "id": 9,
+      "start": 18,
+      "stage": 21,
+      "itemBonus": [
+        {
+          "type": 57,
+          "itemId": 36999,
+          "weight": 1,
+          "value": 1
+        }
+      ]
+    },
+    "10": {
+      "id": 10,
+      "start": 21,
+      "stage": 24,
+      "itemBonus": [
+        {
+          "type": 57,
+          "itemId": 36999,
+          "weight": 1,
+          "value": 1
+        }
+      ]
+    }
+  },
+  "PrivilegeConf": {
+    "701": {
+      "id": 701,
+      "benefit": [
+        {
+          "type": 14,
+          "value": 1
+        }
+      ],
+      "sort": 7,
+      "canMulti": 0,
+      "icon": "items/xiaohao_xingjitiaozhan",
+      "name": "星级挑战特权Lv.1",
+      "description": "本周星级挑战每关增加1次挑战次数，完成达标后立刻生效",
+      "color": 6,
+      "expirationTime": 0,
+      "expirationType": 5,
+      "privilegeExpirationType": -9999
+    },
+    "702": {
+      "id": 702,
+      "benefit": [
+        {
+          "type": 14,
+          "value": 2
+        }
+      ],
+      "sort": 7,
+      "canMulti": 0,
+      "icon": "items/xiaohao_xingjitiaozhan",
+      "name": "星级挑战特权Lv.2",
+      "description": "本周星级挑战每关增加2次挑战次数，完成达标后立刻生效",
+      "color": 6,
+      "expirationTime": 0,
+      "expirationType": 5,
+      "privilegeExpirationType": -9999
+    },
+    "703": {
+      "id": 703,
+      "benefit": [
+        {
+          "type": 14,
+          "value": 3
+        }
+      ],
+      "sort": 7,
+      "canMulti": 0,
+      "icon": "items/xiaohao_xingjitiaozhan",
+      "name": "星级挑战特权Lv.3",
+      "description": "本周星级挑战每关增加3次挑战次数，完成达标后立刻生效",
+      "color": 6,
+      "expirationTime": 0,
+      "expirationType": 5,
+      "privilegeExpirationType": -9999
+    },
+    "704": {
+      "id": 704,
+      "benefit": [
+        {
+          "type": 14,
+          "value": 4
+        }
+      ],
+      "sort": 7,
+      "canMulti": 0,
+      "icon": "items/xiaohao_xingjitiaozhan",
+      "name": "星级挑战特权Lv.4",
+      "description": "本周星级挑战每关增加4次挑战次数，完成达标后立刻生效",
+      "color": 6,
+      "expirationTime": 0,
+      "expirationType": 5,
+      "privilegeExpirationType": -9999
+    },
+    "705": {
+      "id": 705,
+      "benefit": [
+        {
+          "type": 14,
+          "value": 5
+        }
+      ],
+      "sort": 7,
+      "canMulti": 0,
+      "icon": "items/xiaohao_xingjitiaozhan",
+      "name": "星级挑战特权Lv.5",
+      "description": "本周星级挑战每关增加5次挑战次数，完成达标后立刻生效",
+      "color": 6,
+      "expirationTime": 0,
+      "expirationType": 5,
+      "privilegeExpirationType": -9999
+    }
+  },
+  "PrivilegeSortConf": {
+    "14": {
+      "type": 14,
+      "sort": 1,
+      "icon": "items/xiaohao_xingjitiaozhan"
+    }
+  }
+}

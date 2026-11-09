@@ -1,5 +1,5 @@
 <template>
-  <div class="legion-war-map-container">
+  <div class="legion-war-map-container battle-responsive-page">
     <div class="legion-war-map-card">
       <div v-if="!isAccessible" class="access-denied-container">
         <n-result

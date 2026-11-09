@@ -1,18 +1,6 @@
 <template>
   <div v-if="embedded" class="identity-embedded">
     <div class="identity-card embedded">
-      <div class="card-header">
-        <img
-          src="/icons/Ob7pyorzmHiJcbab2c25af264d0758b527bc1b61cc3b.png"
-          alt="身份牌"
-          class="icon"
-        />
-        <div class="info">
-          <h3>身份牌</h3>
-          <p>角色与资源概览</p>
-        </div>
-      </div>
-
       <div v-if="hasRole" class="role-profile-header" :class="rankInfo?.class">
         <div class="role-profile-content">
           <div class="avatar-container">
@@ -25,13 +13,12 @@
           </div>
           <div class="role-info-section">
             <div class="role-name">
-              {{ roleInfo.name || "未知角色" }}
+              <span class="role-name__text">{{ roleInfo.name || "未知角色" }}</span>
               <n-tag
                 v-if="roleInfo.legacy > 0"
                 :style="{
                   color: '#fff',
                   backgroundColor: legacycolor[roleInfo.legacy]?.value,
-                  marginLeft: '8px',
                 }"
                 size="small"
                 :bordered="false"
@@ -44,26 +31,34 @@
               <span class="power-value"
                 >战力 {{ formatPower(roleInfo.power) }}</span
               >
-            </div>
-            <div class="activity-week" v-if="getCurrentActivityWeek">
-              本周活动：{{ getCurrentActivityWeek }}
+              <span class="activity-week-inline" v-if="getCurrentActivityWeek">
+                · {{ getCurrentActivityWeek }}
+              </span>
             </div>
           </div>
+          <button
+            v-if="showExpand"
+            type="button"
+            class="resources-expand-btn"
+            :aria-expanded="isExpanded"
+            @click="isExpanded = !isExpanded"
+          >
+            {{ isExpanded ? "收起资源" : `全部资源 (${resList.length})` }}
+          </button>
         </div>
       </div>
 
       <div class="resources" :class="{ collapsed: !isExpanded }" v-if="hasRole">
-        <div v-for="res in resList" :key="res.label" class="res-item">
+        <div
+          v-for="res in isExpanded ? resList : resList.slice(0, 4)"
+          :key="res.label"
+          class="res-item"
+        >
           <span class="label">{{ res.label }}</span>
           <span class="value">{{ res.value }}</span>
         </div>
       </div>
-      <div v-if="hasRole && showExpand" class="resources-toggle">
-        <n-button text @click="isExpanded = !isExpanded">
-          {{ isExpanded ? "收起" : "展开全部" }}
-        </n-button>
-      </div>
-      <div v-else class="loading">正在获取角色信息...</div>
+      <div v-if="!hasRole" class="loading">正在获取角色信息...</div>
     </div>
   </div>
   <transition v-else name="drop">
@@ -680,11 +675,11 @@ watch(() => roleInfo.value, initializeAvatar, { deep: true });
 .identity-card.embedded {
   width: 100%;
   position: relative;
-  background: linear-gradient(180deg, var(--bg-primary), var(--bg-secondary));
-  border-radius: var(--border-radius-xl);
-  padding: var(--spacing-lg);
-  box-shadow: none;
-  border: 1px solid var(--border-light);
+  background: var(--bg-primary, #ffffff);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 2px 10px rgba(21, 37, 63, 0.04);
+  border: 1px solid var(--border-light, #e4ebf4);
 }
 
 .identity-overlay {
@@ -784,8 +779,8 @@ watch(() => roleInfo.value, initializeAvatar, { deep: true });
 
 .role-profile-header {
   position: relative;
-  border-radius: var(--border-radius-large);
-  padding: 16px;
+  border-radius: 11px;
+  padding: 10px 12px;
   overflow: hidden;
 }
 
@@ -793,36 +788,57 @@ watch(() => roleInfo.value, initializeAvatar, { deep: true });
   position: relative;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   z-index: 3;
 }
 
 .avatar-container {
-  width: 56px;
-  height: 56px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
 }
 
 .role-avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+}
+
+.role-info-section {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .role-name {
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-md);
+  font-weight: 650;
+  font-size: 15px;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.role-name__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .role-stats {
   color: var(--text-secondary);
-  font-size: var(--font-size-sm);
+  font-size: 12px;
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.activity-week-inline {
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .activity-week {
@@ -832,44 +848,54 @@ watch(() => roleInfo.value, initializeAvatar, { deep: true });
   font-weight: var(--font-weight-medium);
 }
 
+.resources-expand-btn {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(21, 37, 63, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #15253f;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 620;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 @media (max-width: 768px) {
   .card-header {
     flex-wrap: wrap;
     gap: var(--spacing-sm);
   }
 
-  .role-profile-content {
+  .identity-card:not(.embedded) .role-profile-content {
     flex-direction: column;
     align-items: center;
     text-align: center;
     gap: var(--spacing-sm);
   }
 
-  .role-info-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .role-stats {
-    justify-content: center;
+  .identity-card.embedded .role-profile-content {
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   .resources {
-    grid-template-columns: repeat(2, 1fr); // 手机端强制两列
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
   }
 
   .res-item {
-    padding: 6px 8px;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 2px;
+    padding: 6px 10px;
+    min-height: 36px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
 
     .label {
-      font-size: 11px;
+      font-size: 12px;
     }
 
     .value {
@@ -950,20 +976,15 @@ watch(() => roleInfo.value, initializeAvatar, { deep: true });
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 8px;
-  margin-top: 10px;
-  --res-item-height: 44px;
-}
-
-.resources.collapsed {
-  max-height: calc((var(--res-item-height) + 8px) * 2 + 8px);
-  overflow: hidden;
+  margin-top: 8px;
+  --res-item-height: 38px;
 }
 
 .res-item {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-light);
-  border-radius: 10px;
-  padding: 8px 10px;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-light, #e4ebf4);
+  border-radius: 9px;
+  padding: 6px 10px;
   min-height: var(--res-item-height);
   display: flex;
   align-items: center;

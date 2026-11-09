@@ -16,16 +16,30 @@
 
 <script setup>
 import { darkTheme } from "naive-ui";
-import { computed, onMounted, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted, watch } from "vue";
+import { useRoute } from "vue-router";
 import { useTheme } from "@/composables/useTheme";
 
 const { isDark, initTheme, setupSystemThemeListener, updateReactiveState } =
   useTheme();
+const route = useRoute();
+const isWorkspaceRoute = computed(() => route.name === "AppWorkspace");
 
-// Naive UI 主题
+// Keep the hosted workspace and its teleported dialogs light without changing
+// the user's saved theme preference.
 const naiveTheme = computed(() => {
+  if (isWorkspaceRoute.value) return null;
   return isDark.value ? darkTheme : null;
 });
+
+watch(
+  isWorkspaceRoute,
+  (enabled) => {
+    if (enabled) document.documentElement.setAttribute("data-workspace-ui", "true");
+    else document.documentElement.removeAttribute("data-workspace-ui");
+  },
+  { immediate: true },
+);
 
 // 监听主题变化事件
 const handleThemeChange = () => {
@@ -50,6 +64,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener("theme-change", handleThemeChange);
+  document.documentElement.removeAttribute("data-workspace-ui");
 });
 </script>
 
@@ -75,131 +90,131 @@ onUnmounted(() => {
 }
 
 /* 深色主题样式优化 - 针对Naive UI组件 */
-html.dark,
-html[data-theme="dark"] {
+html.dark:not([data-workspace-ui]),
+html[data-theme="dark"]:not([data-workspace-ui]) {
   color-scheme: dark;
 }
 
 /* 全局深色主题文字颜色 */
-html.dark *,
-html[data-theme="dark"] * {
+html.dark:not([data-workspace-ui]) *:where(:not(.hosted-page, .hosted-page *)),
+html[data-theme="dark"]:not([data-workspace-ui]) *:where(:not(.hosted-page, .hosted-page *)) {
   color: #ffffff;
 }
 
 /* Naive UI 表单组件 */
-html.dark .n-form-item-label,
-html.dark .n-form-item-label__text,
-html[data-theme="dark"] .n-form-item-label,
-html[data-theme="dark"] .n-form-item-label__text {
+html.dark:not([data-workspace-ui]) .n-form-item-label,
+html.dark:not([data-workspace-ui]) .n-form-item-label__text,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-form-item-label,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-form-item-label__text {
   color: #ffffff !important;
 }
 
 /* Naive UI 输入组件 */
-html.dark .n-input,
-html.dark .n-input__input,
-html.dark .n-input__textarea,
-html[data-theme="dark"] .n-input,
-html[data-theme="dark"] .n-input__input,
-html[data-theme="dark"] .n-input__textarea {
+html.dark:not([data-workspace-ui]) .n-input,
+html.dark:not([data-workspace-ui]) .n-input__input,
+html.dark:not([data-workspace-ui]) .n-input__textarea,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-input,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-input__input,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-input__textarea {
   color: #ffffff !important;
   background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Naive UI 弹框组件 */
-html.dark .n-modal,
-html.dark .n-drawer,
-html.dark .n-popover,
-html.dark .n-dropdown,
-html.dark .n-tooltip,
-html.dark .n-dialog,
-html[data-theme="dark"] .n-modal,
-html[data-theme="dark"] .n-drawer,
-html[data-theme="dark"] .n-popover,
-html[data-theme="dark"] .n-dropdown,
-html[data-theme="dark"] .n-tooltip,
-html[data-theme="dark"] .n-dialog {
+html.dark:not([data-workspace-ui]) .n-modal,
+html.dark:not([data-workspace-ui]) .n-drawer,
+html.dark:not([data-workspace-ui]) .n-popover,
+html.dark:not([data-workspace-ui]) .n-dropdown,
+html.dark:not([data-workspace-ui]) .n-tooltip,
+html.dark:not([data-workspace-ui]) .n-dialog,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-modal,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-drawer,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-popover,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-dropdown,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-tooltip,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-dialog {
   color: #ffffff !important;
 }
 
 /* Naive UI 弹框内容 */
-html.dark .n-modal .n-card,
-html.dark .n-drawer-content,
-html.dark .n-popover-content,
-html.dark .n-dropdown-option,
-html.dark .n-dialog__content,
-html[data-theme="dark"] .n-modal .n-card,
-html[data-theme="dark"] .n-drawer-content,
-html[data-theme="dark"] .n-popover-content,
-html[data-theme="dark"] .n-dropdown-option,
-html[data-theme="dark"] .n-dialog__content {
+html.dark:not([data-workspace-ui]) .n-modal .n-card,
+html.dark:not([data-workspace-ui]) .n-drawer-content,
+html.dark:not([data-workspace-ui]) .n-popover-content,
+html.dark:not([data-workspace-ui]) .n-dropdown-option,
+html.dark:not([data-workspace-ui]) .n-dialog__content,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-modal .n-card,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-drawer-content,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-popover-content,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-dropdown-option,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-dialog__content {
   color: #ffffff !important;
 }
 
 /* Naive UI 下拉选项 */
-html.dark .n-dropdown-option__label,
-html.dark .n-select-option,
-html.dark .n-menu-item-content,
-html[data-theme="dark"] .n-dropdown-option__label,
-html[data-theme="dark"] .n-select-option,
-html[data-theme="dark"] .n-menu-item-content {
+html.dark:not([data-workspace-ui]) .n-dropdown-option__label,
+html.dark:not([data-workspace-ui]) .n-select-option,
+html.dark:not([data-workspace-ui]) .n-menu-item-content,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-dropdown-option__label,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-select-option,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-menu-item-content {
   color: #ffffff !important;
 }
 
 /* 其他组件 */
-html.dark .n-collapse-item__header,
-html.dark .n-radio-button,
-html.dark .n-card,
-html.dark .n-card__content,
-html.dark .n-button,
-html.dark .n-tag,
-html[data-theme="dark"] .n-collapse-item__header,
-html[data-theme="dark"] .n-radio-button,
-html[data-theme="dark"] .n-card,
-html[data-theme="dark"] .n-card__content,
-html[data-theme="dark"] .n-button,
-html[data-theme="dark"] .n-tag {
+html.dark:not([data-workspace-ui]) .n-collapse-item__header,
+html.dark:not([data-workspace-ui]) .n-radio-button,
+html.dark:not([data-workspace-ui]) .n-card,
+html.dark:not([data-workspace-ui]) .n-card__content,
+html.dark:not([data-workspace-ui]) .n-button,
+html.dark:not([data-workspace-ui]) .n-tag,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-collapse-item__header,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-radio-button,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-card,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-card__content,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-button,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-tag {
   color: #ffffff !important;
 }
 
 /* 标题和文本 */
-html.dark h1,
-html.dark h2,
-html.dark h3,
-html.dark h4,
-html.dark h5,
-html.dark h6,
-html.dark p,
-html.dark span,
-html.dark div,
-html.dark label,
-html[data-theme="dark"] h1,
-html[data-theme="dark"] h2,
-html[data-theme="dark"] h3,
-html[data-theme="dark"] h4,
-html[data-theme="dark"] h5,
-html[data-theme="dark"] h6,
-html[data-theme="dark"] p,
-html[data-theme="dark"] span,
-html[data-theme="dark"] div,
-html[data-theme="dark"] label {
+html.dark:not([data-workspace-ui]) h1:where(:not(.hosted-page, .hosted-page *)),
+html.dark:not([data-workspace-ui]) h2:where(:not(.hosted-page, .hosted-page *)),
+html.dark:not([data-workspace-ui]) h3:where(:not(.hosted-page, .hosted-page *)),
+html.dark:not([data-workspace-ui]) h4:where(:not(.hosted-page, .hosted-page *)),
+html.dark:not([data-workspace-ui]) h5:where(:not(.hosted-page, .hosted-page *)),
+html.dark:not([data-workspace-ui]) h6:where(:not(.hosted-page, .hosted-page *)),
+html.dark:not([data-workspace-ui]) p:where(:not(.hosted-page, .hosted-page *)),
+html.dark:not([data-workspace-ui]) span:where(:not(.hosted-page, .hosted-page *)),
+html.dark:not([data-workspace-ui]) div:where(:not(.hosted-page, .hosted-page *)),
+html.dark:not([data-workspace-ui]) label:where(:not(.hosted-page, .hosted-page *)),
+html[data-theme="dark"]:not([data-workspace-ui]) h1:where(:not(.hosted-page, .hosted-page *)),
+html[data-theme="dark"]:not([data-workspace-ui]) h2:where(:not(.hosted-page, .hosted-page *)),
+html[data-theme="dark"]:not([data-workspace-ui]) h3:where(:not(.hosted-page, .hosted-page *)),
+html[data-theme="dark"]:not([data-workspace-ui]) h4:where(:not(.hosted-page, .hosted-page *)),
+html[data-theme="dark"]:not([data-workspace-ui]) h5:where(:not(.hosted-page, .hosted-page *)),
+html[data-theme="dark"]:not([data-workspace-ui]) h6:where(:not(.hosted-page, .hosted-page *)),
+html[data-theme="dark"]:not([data-workspace-ui]) p:where(:not(.hosted-page, .hosted-page *)),
+html[data-theme="dark"]:not([data-workspace-ui]) span:where(:not(.hosted-page, .hosted-page *)),
+html[data-theme="dark"]:not([data-workspace-ui]) div:where(:not(.hosted-page, .hosted-page *)),
+html[data-theme="dark"]:not([data-workspace-ui]) label:where(:not(.hosted-page, .hosted-page *)) {
   color: #ffffff !important;
 }
 
 /* 占位符文本 */
-html.dark .n-input__placeholder,
-html.dark ::placeholder,
-html[data-theme="dark"] .n-input__placeholder,
-html[data-theme="dark"] ::placeholder {
+html.dark:not([data-workspace-ui]) .n-input__placeholder,
+html.dark:not([data-workspace-ui]) ::placeholder,
+html[data-theme="dark"]:not([data-workspace-ui]) .n-input__placeholder,
+html[data-theme="dark"]:not([data-workspace-ui]) ::placeholder {
   color: rgba(255, 255, 255, 0.6) !important;
 }
 
 /* 确保Portal渲染的组件也应用深色主题 */
-body.dark .n-modal-container,
-body.dark .n-drawer-container,
-body.dark .n-popover-container,
-body[data-theme="dark"] .n-modal-container,
-body[data-theme="dark"] .n-drawer-container,
-body[data-theme="dark"] .n-popover-container {
+html:not([data-workspace-ui]) body.dark .n-modal-container,
+html:not([data-workspace-ui]) body.dark .n-drawer-container,
+html:not([data-workspace-ui]) body.dark .n-popover-container,
+html:not([data-workspace-ui]) body[data-theme="dark"] .n-modal-container,
+html:not([data-workspace-ui]) body[data-theme="dark"] .n-drawer-container,
+html:not([data-workspace-ui]) body[data-theme="dark"] .n-popover-container {
   color: #ffffff !important;
 }
 

@@ -20,6 +20,7 @@ const errorCodeMap = {
   1300050: "请修改您的采购次数",
   200020: "出了点小问题，请尝试重启游戏解决～",
   200160: "模块未开启",
+  "-10006": "今日已领取或未满足领取条件",
   7500140: "请先输入密码",
   7500100: "密码输入错误",
   7500120: "密码输入错误次数已达上限",
@@ -47,6 +48,17 @@ const errorCodeMap = {
   4800080: "不在规定时间内或未到报名阶段",
   4800040: "俱乐部没有报名",
   2100010: "活动未开放",
+};
+
+const createServerRejection = (packet, command) => {
+  const serverHint = typeof packet.hint === "string" ? packet.hint.trim() : "";
+  const description = Number(packet.code) === 200750
+    ? serverHint || "游戏服务器拒绝了请求，具体原因未确认"
+    : errorCodeMap[packet.code] || serverHint || "未知错误";
+  const error = new Error(`服务器错误: ${packet.code} - ${description}`);
+  error.gameCode = Number(packet.code);
+  error.command = command || "";
+  return error;
 };
 
 // 事件节流定义表，根据实际需要调整命令和节流时间
@@ -170,6 +182,7 @@ export function registerDefaultCommands(reg) {
 
     // 好友/招募
     .register("friend_batch", { friendId: 0 })
+    .register("friend_getfollowinfo")
     .register("hero_recruit", {
       byClub: false,
       recruitNumber: 1,
@@ -309,9 +322,23 @@ export function registerDefaultCommands(reg) {
     // 队伍相关
     .register("presetteam_getinfo")
     .register("presetteam_getinfo")
+    .register("presetteam_typegetinfo")
     .register("presetteam_setteam")
     .register("presetteam_saveteam", { teamId: 1 })
     .register("role_gettargetteam")
+    .register("team_setteam")
+    .register("item_getinfo")
+    .register("role_getfirstmonthdate")
+    .register("matchteam_create")
+    .register("matchteam_join")
+    .register("matchteam_getteaminfo")
+    .register("matchteam_changeextparam")
+    .register("matchteam_memberprepare")
+    .register("matchteam_memberconfirm")
+    .register("matchteam_openteam")
+    .register("matchteam_leaderstop")
+    .register("matchteam_leave")
+    .register("matchteam_dismiss")
     .register("hero_exchange")
     .register("hero_gointobattle")
     .register("hero_gobackbattle")
@@ -337,6 +364,20 @@ export function registerDefaultCommands(reg) {
 
     // 梦魇相关
     .register("nightmare_getroleinfo")
+    .register("nightmare_getroominfo")
+    .register("nightmare_getcharm")
+    .register("nightmare_claimcharm")
+    .register("nightmare_buycharm")
+    .register("nightmare_setfighter")
+    .register("nightmare_fight")
+    .register("nightmare_restore")
+    .register("nightmare_leadercomplete")
+    .register("nightmare_dismiss")
+    .register("nightmare_takekillaward")
+    .register("nightmare_claimweekreward")
+    .register("nmext_getinfo")
+    .register("nmext_startboss")
+    .register("nmext_claimstarreward")
     .register("dungeon_selecthero")
     .register("bosstower_gethelprank")
     .register("dungeon_buymerchant")
@@ -500,6 +541,7 @@ export class XyzwWebSocketClient {
 
     this.dialogStatus = false;
     this.messageListener = null;
+    this.messageListeners = new Set();
     this.showMsg = false;
     this.connected = false;
     this.isReconnecting = false; // 重连状态标志
@@ -620,9 +662,7 @@ export class XyzwWebSocketClient {
                 }
 
                 // 回调处理
-                if (this.messageListener) {
-                  this.messageListener(packet);
-                }
+                this._notifyMessageListeners(packet);
 
                 // Promise 响应处理
                 if (this.socket === socket) this._handlePromiseResponse(packet);
@@ -696,9 +736,7 @@ export class XyzwWebSocketClient {
         }
 
         // 回调处理
-        if (this.messageListener) {
-          this.messageListener(packet);
-        }
+        this._notifyMessageListeners(packet);
 
         // Promise 响应处理
         if (this.socket === socket) this._handlePromiseResponse(packet);
@@ -734,9 +772,22 @@ export class XyzwWebSocketClient {
     };
   }
 
-  /** 注册消息回调 */
+  /** 注册主消息回调；模块订阅应使用 addMessageListener 以免覆盖应用处理器。 */
   setMessageListener(fn) {
     this.messageListener = fn;
+  }
+
+  addMessageListener(fn) {
+    if (typeof fn !== "function") throw new TypeError("message listener must be a function");
+    this.messageListeners.add(fn);
+    return () => this.messageListeners.delete(fn);
+  }
+
+  _notifyMessageListeners(packet) {
+    const listeners = new Set([this.messageListener, ...this.messageListeners].filter((fn) => typeof fn === "function"));
+    for (const listener of listeners) {
+      try { listener(packet); } catch (error) { wsLogger.error("消息订阅处理失败:", error?.message || error); }
+    }
   }
 
   /** 控制台消息开关 */
@@ -1159,13 +1210,7 @@ export class XyzwWebSocketClient {
       if (packet.code === 0 || packet.code === undefined) {
         promiseData.resolve(responseBody || packet);
       } else {
-        // 获取错误描述
-        const errorDesc =
-          errorCodeMap[packet.code] || packet.hint || "未知错误";
-
-        promiseData.reject(
-          new Error(`服务器错误: ${packet.code} - ${errorDesc}`),
-        );
+        promiseData.reject(createServerRejection(packet, promiseData.originalCmd));
       }
       return;
     }
@@ -1186,6 +1231,7 @@ export class XyzwWebSocketClient {
       legion_getarearankresp: "legion_getarearank",
       legionwar_getgoldmonthwarrankresp: "legionwar_getgoldmonthwarrank",
       nightmare_getroleinforesp: "nightmare_getroleinfo",
+      nightmare_getroominforesp: "nightmare_getroominfo",
       fight_startlevelresp: "fight_startlevel",
       fight_calcleveltimeresp: "fight_calcleveltime",
       fight_levelresp: "fight_level",
@@ -1199,6 +1245,7 @@ export class XyzwWebSocketClient {
       apex_voteresp: "apex_vote",
       hero_recruitresp: "hero_recruit",
       friend_batchresp: "friend_batch",
+      friend_getfollowinforesp: "friend_getfollowinfo",
       system_claimhanguprewardresp: "system_claimhangupreward",
       system_hangupupgraderesp: "system_hangupupgrade",
       item_openboxresp: ["item_openbox", "item_batchclaimboxpointreward"],
@@ -1215,6 +1262,10 @@ export class XyzwWebSocketClient {
       arena_getarearankresp: "arena_getarearank",
       presetteam_saveteamresp: "presetteam_saveteam",
       presetteam_getinforesp: "presetteam_getinfo",
+      presetteam_typegetinforesp: "presetteam_typegetinfo",
+      nmext_getinforesp: "nmext_getinfo",
+      nmext_startbossresp: "nmext_startboss",
+      nmext_claimstarrewardresp: "nmext_claimstarreward",
       mail_claimallattachmentresp: "mail_claimallattachment",
       store_buyresp: "store_purchase",
       store_getpurchaseresp: "store_getpurchase",
@@ -1257,7 +1308,12 @@ export class XyzwWebSocketClient {
       pearl_exchangeskillresp: "pearl_exchangeskill",
       pearl_unloadskillresp: "pearl_unloadskill",
       // 咸王宝库
+      matchteam_joinresp: "matchteam_join",
+      matchteam_memberprepareresp: "matchteam_memberprepare",
+      matchteam_memberconfirmresp: "matchteam_memberconfirm",
+      matchteam_openteamresp: "matchteam_openteam",
       matchteam_getroleteaminforesp: "matchteam_getroleteaminfo",
+      matchteam_getteaminforesp: "matchteam_getteaminfo",
       bosstower_getinforesp: "bosstower_getinfo",
       bosstower_startbossresp: "bosstower_startboss",
       bosstower_startboxresp: "bosstower_startbox",
@@ -1365,13 +1421,7 @@ export class XyzwWebSocketClient {
         if (packet.code === 0 || packet.code === undefined) {
           promiseData.resolve(responseBody || packet);
         } else {
-          // 获取错误描述
-          const errorDesc =
-            errorCodeMap[packet.code] || packet.hint || "未知错误";
-
-          promiseData.reject(
-            new Error(`服务器错误: ${packet.code} - ${errorDesc}`),
-          );
+          promiseData.reject(createServerRejection(packet, promiseData.originalCmd));
         }
         break;
       }

@@ -1,5 +1,5 @@
 <template>
-  <div class="apex-challenge-container">
+  <div class="apex-challenge-container battle-responsive-page">
     <!-- 顶部工具栏 -->
     <div class="toolbar">
       <div class="left">
@@ -201,7 +201,13 @@
           </div>
         </NCard>
 
-        <NGrid :cols="4" :x-gap="12" :y-gap="12" style="margin-top: 12px">
+        <NGrid
+          :cols="4"
+          :x-gap="12"
+          :y-gap="12"
+          style="margin-top: 12px"
+          class="apex-reset-grid"
+        >
           <NGridItem v-for="rs in resetCards" :key="rs.label">
             <div class="stat-card" :class="rs.color">
               <div class="stat-icon">{{ rs.icon }}</div>
@@ -617,6 +623,7 @@
       :title="`助威 ${voteTargetName || ''}`"
       style="width: 380px"
       :bordered="false"
+      class="battle-responsive-modal"
     >
       <div class="vote-dialog-body">
         <NSpace vertical size="large">

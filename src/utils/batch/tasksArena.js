@@ -3,6 +3,7 @@
  * 包含: batcharenafight, batchTopUpFish, batchTopUpArena
  */
 
+import { toBeijingDate } from "../towerActId.js";
 import { ARENA_TARGET, FISH_TARGET } from "./constants.js";
 
 /**
@@ -11,6 +12,9 @@ import { ARENA_TARGET, FISH_TARGET } from "./constants.js";
  * @returns {object} 任务函数集合
  */
 export function createTasksArena(deps) {
+  const sleep = deps.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const clockNow = deps.now || (() => new Date());
+  const logError = deps.onError || ((...args) => globalThis.console.error(...args));
   const {
     selectedTokens,
     tokens,
@@ -56,7 +60,7 @@ export function createTasksArena(deps) {
 
       try {
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `=== 开始一键竞技场战斗: ${token.name} ===`,
           type: "info",
         });
@@ -73,14 +77,14 @@ export function createTasksArena(deps) {
         }
         const ticketCount = role?.items?.[1007]?.quantity || 0;
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 当前咸神门票: ${ticketCount}`,
           type: "info",
         });
 
         if (ticketCount <= 0) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 咸神门票不足，无法进行竞技场战斗`,
             type: "warning",
           });
@@ -96,7 +100,7 @@ export function createTasksArena(deps) {
         );
         if (!teamInfo || !teamInfo.presetTeamInfo) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `阵容信息异常: ${JSON.stringify(teamInfo)}`,
             type: "warning",
           });
@@ -106,7 +110,7 @@ export function createTasksArena(deps) {
         let Isswitching = false;
         if (currentFormation === tokenSettings.arenaFormation) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `当前已是阵容${tokenSettings.arenaFormation}，无需切换`,
             type: "info",
           });
@@ -119,7 +123,7 @@ export function createTasksArena(deps) {
           );
           Isswitching = true;
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `成功切换到阵容${tokenSettings.arenaFormation}`,
             type: "info",
           });
@@ -128,7 +132,7 @@ export function createTasksArena(deps) {
         const fights = Math.min(3, ticketCount);
         if (fights < 3) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 咸神门票仅剩 ${ticketCount} 张，将执行 ${fights} 次战斗`,
             type: "warning",
           });
@@ -155,7 +159,7 @@ export function createTasksArena(deps) {
           const targetId = pickArenaTargetId(targets);
           if (!targetId) {
             addLog({
-              time: new Date().toLocaleTimeString(),
+              time: clockNow().toLocaleTimeString(),
               message: `${token.name} 未找到可用的竞技场目标`,
               type: "error",
             });
@@ -168,20 +172,20 @@ export function createTasksArena(deps) {
               { targetId },
             );
             addLog({
-              time: new Date().toLocaleTimeString(),
+              time: clockNow().toLocaleTimeString(),
               message: `${token.name} 竞技场战斗 ${i + 1}/3`,
               type: "info",
             });
-            await new Promise((r) => setTimeout(r, delayConfig.battle));
+            await sleep(delayConfig.battle);
           } catch (e) {
             addLog({
-              time: new Date().toLocaleTimeString(),
+              time: clockNow().toLocaleTimeString(),
               message: `${token.name} 竞技场对决失败: ${e.message || "未知错误"}`,
               type: "error",
             });
           }
         }
-        await new Promise((r) => setTimeout(r, delayConfig.battle));
+        await sleep(delayConfig.battle);
         if (Isswitching) {
           await tokenStore.sendMessageWithPromise(
             tokenId,
@@ -192,15 +196,15 @@ export function createTasksArena(deps) {
         }
         tokenStatus.value[tokenId] = "completed";
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `=== ${token.name} 竞技场战斗已完成 ===`,
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 一键竞技场战斗失败: ${error.message || "未知错误"}`,
           type: "error",
         });
@@ -208,7 +212,7 @@ export function createTasksArena(deps) {
         tokenStore.closeWebSocketConnection(tokenId);
         releaseConnectionSlot();
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 连接已关闭  (队列: ${connectionQueue.active}/${batchSettings.maxActive})`,
           type: "info",
         });
@@ -239,13 +243,13 @@ export function createTasksArena(deps) {
       const token = tokens.value.find((t) => t.id === tokenId);
       try {
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `=== 开始钓鱼补齐: ${token.name} ===`,
           type: "info",
         });
         await ensureConnection(tokenId);
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 获取月度任务进度...`,
           type: "info",
         });
@@ -259,7 +263,7 @@ export function createTasksArena(deps) {
 
         if (!act) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 获取月度任务进度失败`,
             type: "error",
           });
@@ -270,13 +274,13 @@ export function createTasksArena(deps) {
         const fishNum = Number(myMonthInfo?.["2"]?.num || 0);
 
         const monthProgress = calculateMonthProgress();
-        const now = new Date();
-        const daysInMonth = new Date(
-          now.getFullYear(),
-          now.getMonth() + 1,
+        const now = toBeijingDate(clockNow());
+        const daysInMonth = new Date(Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth() + 1,
           0,
-        ).getDate();
-        const dayOfMonth = now.getDate();
+        )).getUTCDate();
+        const dayOfMonth = now.getUTCDate();
         const remainingDays = Math.max(0, daysInMonth - dayOfMonth);
         const shouldBe =
           remainingDays === 0
@@ -284,13 +288,13 @@ export function createTasksArena(deps) {
             : Math.min(FISH_TARGET, Math.ceil(monthProgress * FISH_TARGET));
         const need = Math.max(0, shouldBe - fishNum);
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 当前进度: ${fishNum}/${FISH_TARGET}，需要补齐: ${need}次`,
           type: "info",
         });
         if (need <= 0) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `当前进度已达标，无需补齐`,
             type: "success",
           });
@@ -299,7 +303,7 @@ export function createTasksArena(deps) {
         }
 
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 开始执行钓鱼补齐...`,
           type: "info",
         });
@@ -317,7 +321,7 @@ export function createTasksArena(deps) {
         );
         if (isTodayAvailable(lastFreeTime)) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 检测到今日免费钓鱼次数，开始消耗 3 次`,
             type: "info",
           });
@@ -330,10 +334,10 @@ export function createTasksArena(deps) {
                 8000,
               );
               freeUsed++;
-              await new Promise((r) => setTimeout(r, delayConfig.action));
+              await sleep(delayConfig.action);
             } catch (e) {
               addLog({
-                time: new Date().toLocaleTimeString(),
+                time: clockNow().toLocaleTimeString(),
                 message: `${token.name} 免费钓鱼失败: ${e.message}`,
                 type: "error",
               });
@@ -356,13 +360,13 @@ export function createTasksArena(deps) {
         const updatedFishNum = Number(updatedMyMonthInfo?.["2"]?.num || 0);
         let remaining = Math.max(0, shouldBe - updatedFishNum);
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 免费次数后进度: ${updatedFishNum}/${FISH_TARGET}，还需补齐: ${remaining}次`,
           type: "info",
         });
         if (remaining <= 0) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `已通过免费次数完成目标`,
             type: "success",
           });
@@ -371,7 +375,7 @@ export function createTasksArena(deps) {
         }
 
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 开始付费钓鱼补齐: 共需 ${remaining} 次（每次最多10）`,
           type: "info",
         });
@@ -379,14 +383,14 @@ export function createTasksArena(deps) {
         // 检查普通鱼竿 (ID: 1011)
         const rodCount = role?.items?.[1011]?.quantity || 0;
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 当前普通鱼竿: ${rodCount}`,
           type: "info",
         });
 
         if (rodCount < remaining) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 普通鱼竿不足 (${rodCount} < ${remaining})，将仅使用现有鱼竿`,
             type: "warning",
           });
@@ -403,7 +407,7 @@ export function createTasksArena(deps) {
               12000,
             );
             addLog({
-              time: new Date().toLocaleTimeString(),
+              time: clockNow().toLocaleTimeString(),
               message: `${token.name} 完成 ${batch} 次付费钓鱼`,
               type: "info",
             });
@@ -424,7 +428,7 @@ export function createTasksArena(deps) {
                     currentRole.items?.[1011]?.quantity || 0;
                   if (currentRodCount < remaining) {
                     addLog({
-                      time: new Date().toLocaleTimeString(),
+                      time: clockNow().toLocaleTimeString(),
                       message: `${token.name} 同步后发现鱼竿不足 (${currentRodCount} < ${remaining})，调整目标`,
                       type: "warning",
                     });
@@ -436,10 +440,10 @@ export function createTasksArena(deps) {
               }
             }
 
-            await new Promise((r) => setTimeout(r, delayConfig.battle));
+            await sleep(delayConfig.battle);
           } catch (e) {
             addLog({
-              time: new Date().toLocaleTimeString(),
+              time: clockNow().toLocaleTimeString(),
               message: `${token.name} 付费钓鱼失败: ${e.message}`,
               type: "error",
             });
@@ -459,13 +463,13 @@ export function createTasksArena(deps) {
         const finalFishNum = Number(finalMyMonthInfo?.["2"]?.num || 0);
         if (finalFishNum >= shouldBe || finalFishNum >= FISH_TARGET) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 钓鱼补齐完成，最终进度: ${finalFishNum}/${FISH_TARGET}`,
             type: "success",
           });
         } else {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 钓鱼补齐已停止，未达到目标，最终进度: ${finalFishNum}/${FISH_TARGET}`,
             type: "warning",
           });
@@ -486,7 +490,7 @@ export function createTasksArena(deps) {
 
             if (exchangeCount > 0) {
               addLog({
-                time: new Date().toLocaleTimeString(),
+                time: clockNow().toLocaleTimeString(),
                 message: `${token.name} 检测到鱼竿累计使用 ${points}，开始领取 ${exchangeCount} 次累计奖励`,
                 type: "info",
               });
@@ -499,10 +503,10 @@ export function createTasksArena(deps) {
                     {},
                     3000,
                   );
-                  await new Promise((r) => setTimeout(r, 500));
+                  await sleep(500);
                 } catch (err) {
                   addLog({
-                    time: new Date().toLocaleTimeString(),
+                    time: clockNow().toLocaleTimeString(),
                     message: `${token.name} 领取累计奖励失败 (第${k + 1}次): ${err.message}`,
                     type: "warning",
                   });
@@ -510,7 +514,7 @@ export function createTasksArena(deps) {
                 }
               }
               addLog({
-                time: new Date().toLocaleTimeString(),
+                time: clockNow().toLocaleTimeString(),
                 message: `${token.name} 累计奖励领取结束`,
                 type: "success",
               });
@@ -518,7 +522,7 @@ export function createTasksArena(deps) {
           }
         } catch (e) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 检查累计奖励失败: ${e.message}`,
             type: "warning",
           });
@@ -526,10 +530,10 @@ export function createTasksArena(deps) {
 
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 钓鱼补齐失败: ${error.message}`,
           type: "error",
         });
@@ -537,7 +541,7 @@ export function createTasksArena(deps) {
         tokenStore.closeWebSocketConnection(tokenId);
         releaseConnectionSlot();
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 连接已关闭  (队列: ${connectionQueue.active}/${batchSettings.maxActive})`,
           type: "info",
         });
@@ -574,7 +578,7 @@ export function createTasksArena(deps) {
 
       try {
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `=== 开始竞技场补齐: ${token.name} ===`,
           type: "info",
         });
@@ -588,7 +592,7 @@ export function createTasksArena(deps) {
         );
         if (!teamInfo || !teamInfo.presetTeamInfo) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `阵容信息异常: ${JSON.stringify(teamInfo)}`,
             type: "warning",
           });
@@ -598,7 +602,7 @@ export function createTasksArena(deps) {
         let Isswitching = false;
         if (currentFormation === tokenSettings.arenaFormation) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `当前已是阵容${tokenSettings.arenaFormation}，无需切换`,
             type: "info",
           });
@@ -611,13 +615,13 @@ export function createTasksArena(deps) {
           );
           Isswitching = true;
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `成功切换到阵容${tokenSettings.arenaFormation}`,
             type: "info",
           });
         }
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 获取月度任务进度...`,
           type: "info",
         });
@@ -631,7 +635,7 @@ export function createTasksArena(deps) {
 
         if (!act) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 获取月度任务进度失败`,
             type: "error",
           });
@@ -642,13 +646,13 @@ export function createTasksArena(deps) {
         const arenaNum = Number(myArenaInfo?.num || 0);
 
         const monthProgress = calculateMonthProgress();
-        const now = new Date();
-        const daysInMonth = new Date(
-          now.getFullYear(),
-          now.getMonth() + 1,
+        const now = toBeijingDate(clockNow());
+        const daysInMonth = new Date(Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth() + 1,
           0,
-        ).getDate();
-        const dayOfMonth = now.getDate();
+        )).getUTCDate();
+        const dayOfMonth = now.getUTCDate();
         const remainingDays = Math.max(0, daysInMonth - dayOfMonth);
         const shouldBe =
           remainingDays === 0
@@ -656,13 +660,13 @@ export function createTasksArena(deps) {
             : Math.min(ARENA_TARGET, Math.ceil(monthProgress * ARENA_TARGET));
         const need = Math.max(0, shouldBe - arenaNum);
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 当前进度: ${arenaNum}/${ARENA_TARGET}，需要补齐: ${need}次`,
           type: "info",
         });
         if (need <= 0) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 当前进度已达标，无需补齐`,
             type: "success",
           });
@@ -671,7 +675,7 @@ export function createTasksArena(deps) {
         }
 
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 开始执行竞技场补齐...`,
           type: "info",
         });
@@ -686,14 +690,14 @@ export function createTasksArena(deps) {
         }
         const ticketCount = role?.items?.[1007]?.quantity || 0;
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 当前咸神门票: ${ticketCount}`,
           type: "info",
         });
 
         if (ticketCount < need) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 咸神门票不足 (${ticketCount} < ${need})，将仅使用现有门票`,
             type: "warning",
           });
@@ -704,7 +708,7 @@ export function createTasksArena(deps) {
 
         if (remaining <= 0) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 没有可用的咸神门票`,
             type: "warning",
           });
@@ -721,7 +725,7 @@ export function createTasksArena(deps) {
           );
         } catch (error) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 开始竞技场失败: ${error.message}`,
             type: "warning",
           });
@@ -738,7 +742,7 @@ export function createTasksArena(deps) {
         ) {
           const planFights = Math.min(Math.ceil(remaining / 2), ticketsLeft);
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 第${round}轮：计划战斗 ${planFights} 场 (剩余门票: ${ticketsLeft})`,
             type: "info",
           });
@@ -760,7 +764,7 @@ export function createTasksArena(deps) {
               );
             } catch (err) {
               addLog({
-                time: new Date().toLocaleTimeString(),
+                time: clockNow().toLocaleTimeString(),
                 message: `${token.name} 获取竞技场目标失败：${err.message}`,
                 type: "error",
               });
@@ -770,7 +774,7 @@ export function createTasksArena(deps) {
             const targetId = pickArenaTargetId(targets);
             if (!targetId) {
               addLog({
-                time: new Date().toLocaleTimeString(),
+                time: clockNow().toLocaleTimeString(),
                 message: `${token.name} 未找到可用的竞技场目标`,
                 type: "warning",
               });
@@ -787,20 +791,20 @@ export function createTasksArena(deps) {
 
               ticketsLeft--;
               addLog({
-                time: new Date().toLocaleTimeString(),
+                time: clockNow().toLocaleTimeString(),
                 message: `${token.name} 竞技场战斗 ${i + 1}/${planFights} 完成`,
                 type: "info",
               });
             } catch (e) {
               addLog({
-                time: new Date().toLocaleTimeString(),
+                time: clockNow().toLocaleTimeString(),
                 message: `${token.name} 竞技场对决失败：${e.message}`,
                 type: "error",
               });
             }
 
             safetyCounter++;
-            await new Promise((r) => setTimeout(r, delayConfig.refresh));
+            await sleep(delayConfig.refresh);
           }
 
           const updatedResult = await tokenStore.sendMessageWithPromise(
@@ -832,7 +836,7 @@ export function createTasksArena(deps) {
               const newTickets = currentRole.items?.[1007]?.quantity || 0;
               if (newTickets !== ticketsLeft) {
                 addLog({
-                  time: new Date().toLocaleTimeString(),
+                  time: clockNow().toLocaleTimeString(),
                   message: `${token.name} 同步最新门票数量: ${newTickets} (原记录: ${ticketsLeft})`,
                   type: "info",
                 });
@@ -846,7 +850,7 @@ export function createTasksArena(deps) {
           remaining = Math.min(neededForTarget, ticketsLeft);
 
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 第${round}轮后进度: ${updatedArenaNum}/${ARENA_TARGET}，还需补齐: ${remaining}次`,
             type: "info",
           });
@@ -866,19 +870,19 @@ export function createTasksArena(deps) {
         const finalArenaNum = Number(finalMyArenaInfo?.num || 0);
         if (finalArenaNum >= shouldBe || finalArenaNum >= ARENA_TARGET) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 竞技场补齐完成，最终进度: ${finalArenaNum}/${ARENA_TARGET}`,
             type: "success",
           });
         } else if (safetyCounter >= safetyMaxFights) {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `达到安全上限，竞技场补齐已停止，最终进度: ${finalArenaNum}/${ARENA_TARGET}`,
             type: "warning",
           });
         } else {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `${token.name} 竞技场补齐已停止，未达到目标，最终进度: ${finalArenaNum}/${ARENA_TARGET}`,
             type: "warning",
           });
@@ -893,10 +897,10 @@ export function createTasksArena(deps) {
         }
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 竞技场补齐失败: ${error.message}`,
           type: "error",
         });
@@ -904,7 +908,7 @@ export function createTasksArena(deps) {
         tokenStore.closeWebSocketConnection(tokenId);
         releaseConnectionSlot();
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 连接已关闭  (队列: ${connectionQueue.active}/${batchSettings.maxActive})`,
           type: "info",
         });

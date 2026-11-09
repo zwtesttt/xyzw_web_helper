@@ -14,6 +14,12 @@
         </div>
 
         <div class="nav-menu">
+          <router-link to="/app" class="nav-item" active-class="active">
+            <n-icon>
+              <Home />
+            </n-icon>
+            <span>所有功能</span>
+          </router-link>
           <router-link
             to="/admin/dashboard"
             class="nav-item"
@@ -111,6 +117,16 @@
       style="width: 260px"
     >
       <div class="drawer-menu">
+        <router-link
+          to="/app"
+          class="drawer-item"
+          @click="isMobileMenuOpen = false"
+        >
+          <n-icon>
+            <Home />
+          </n-icon>
+          <span>所有功能</span>
+        </router-link>
         <router-link
           to="/admin/dashboard"
           class="drawer-item"

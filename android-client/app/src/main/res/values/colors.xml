@@ -1,0 +1,14 @@
+<resources>
+    <color name="launcher_background">#2563EB</color>
+    <color name="native_background">#F3F6FB</color>
+    <color name="native_surface">#FFFFFF</color>
+    <color name="native_ink">#15253F</color>
+    <color name="native_muted">#6E7C92</color>
+    <color name="native_border">#E4EBF4</color>
+    <color name="native_primary">#2563EB</color>
+    <color name="native_primary_pressed">#1D4ED8</color>
+    <color name="native_field">#F8FAFD</color>
+    <color name="native_danger">#B42318</color>
+    <color name="native_ripple">#302563EB</color>
+    <color name="native_fish">#D6A344</color>
+</resources>

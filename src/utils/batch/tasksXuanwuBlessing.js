@@ -4,7 +4,7 @@
  * 抽奖会推进任务进度（如"抽奖X次"类任务），故抽奖后需重新拉取并再领一轮
  */
 
-import { getXuanwuActBase } from "@/utils/towerActId";
+import { getXuanwuActBase } from "../towerActId.js";
 
 // 活动ID后缀（前缀为当天日期 YYMMDD）
 const WAR_ORDER_SUFFIX = "1";
@@ -20,7 +20,6 @@ const MAX_REWARD_ROUNDS = 10;
 // 点卯补领天数（patchDay 0-6）
 const SIGN_MAX_DAY = 6;
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const formatReward = (reward = []) =>
   reward
@@ -37,6 +36,9 @@ const formatReward = (reward = []) =>
  * @returns {object} 任务函数集合
  */
 export function createTasksXuanwuBlessing(deps) {
+  const sleep = deps.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const clockNow = deps.now || (() => new Date());
+  const logError = deps.onError || ((...args) => globalThis.console.error(...args));
   const {
     selectedTokens,
     tokens,
@@ -55,7 +57,7 @@ export function createTasksXuanwuBlessing(deps) {
   const commandDelay = delayConfig?.command || delayConfig?.action || 300;
 
   const log = (msg, type = "info") =>
-    addLog({ time: new Date().toLocaleTimeString(), message: msg, type });
+    addLog({ time: clockNow().toLocaleTimeString(), message: msg, type });
 
   /** 拉取通行证活动信息 */
   const fetchWarOrder = async (tokenId, actId) => {
@@ -75,10 +77,9 @@ export function createTasksXuanwuBlessing(deps) {
   /** 解析当前活动ID：先用日期推导，取不到再逐天回退探测 */
   const resolveWarOrder = async (tokenId) => {
     const candidates = [];
-    const now = new Date();
+    const currentDate = clockNow();
     for (let i = 0; i < 7; i++) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
+      const date = new Date(new Date(currentDate).getTime() - i * 24 * 60 * 60 * 1000);
       candidates.push(Number(getXuanwuActBase(date) + WAR_ORDER_SUFFIX));
     }
 
@@ -125,7 +126,7 @@ export function createTasksXuanwuBlessing(deps) {
       } catch {
         skipped++;
       }
-      await delay(commandDelay);
+      await sleep(commandDelay);
     }
 
     if (claimed > 0 || skipped > 0) {
@@ -159,7 +160,7 @@ export function createTasksXuanwuBlessing(deps) {
         // 已无可领取奖励
         break;
       }
-      await delay(commandDelay);
+      await sleep(commandDelay);
     }
     if (rounds > 0) {
       log(`${tokenName} 通行证奖励: 领取 ${rounds} 次`, "success");
@@ -222,7 +223,7 @@ export function createTasksXuanwuBlessing(deps) {
         log(`${tokenName} 抽奖失败: ${error.message || "未知错误"}`, "warning");
         break;
       }
-      await delay(commandDelay);
+      await sleep(commandDelay);
     }
     return count;
   };
@@ -252,7 +253,7 @@ export function createTasksXuanwuBlessing(deps) {
       } catch {
         skipped++;
       }
-      await delay(commandDelay);
+      await sleep(commandDelay);
     }
     log(
       `${tokenName} 玄武点卯: 领取 ${claimed} 天, 跳过 ${skipped} 天`,
@@ -295,7 +296,7 @@ export function createTasksXuanwuBlessing(deps) {
 
         // 2. 免费珍宝购买（产出抽奖券）
         await buyFreeGoods(tokenId, goodsId, token.name);
-        await delay(commandDelay);
+        await sleep(commandDelay);
 
         // 3. 抽奖（会推进"抽奖X次"类任务进度）
         const lotteryCnt = await doLottery(tokenId, token.name);
@@ -328,7 +329,7 @@ export function createTasksXuanwuBlessing(deps) {
 
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         log(
           `${token.name} 玄武赐福失败: ${error.message || "未知错误"}`,

@@ -1,5 +1,5 @@
 <template>
-  <div class="club-warrank-container">
+  <div class="club-warrank-container battle-responsive-page">
     <div class="club-warrank-card">
       <!-- 头部信息区 -->
       <div class="header-section">
@@ -149,6 +149,7 @@
       :bordered="false"
       :segmented="{ content: 'soft', footer: 'soft' }"
       :show-close="false"
+      class="battle-responsive-modal"
     >
       <template #header-extra>
         <span v-if="playerInfo" class="player-id">ID: {{ playerInfo.id }}</span>
@@ -418,7 +419,7 @@
     <!-- 武将详情模态框 -->
     <NModal
       v-model:show="showHeroModal"
-      class="hero-detail-modal"
+      class="hero-detail-modal battle-responsive-modal"
       preset="card"
       title="武将信息"
       size="large"
@@ -459,7 +460,7 @@
         </div>
 
         <div class="hero-modal-details">
-          <NDescriptions label-placement="left" column="3" bordered>
+          <NDescriptions label-placement="left" :column="isMobileBattleLayout ? 1 : 3" bordered>
             <NDescriptionsItem label="战力">
               {{ formatPower(heroModealTemp.power) }}
             </NDescriptionsItem>
@@ -584,6 +585,7 @@
 <script setup>
 import { Copy, Refresh } from "@vicons/ionicons5";
 
+import { useMediaQuery } from "@vueuse/core";
 import html2canvas from "html2canvas";
 import {
   NAvatar,
@@ -615,6 +617,8 @@ const props = defineProps({
     default: false,
   },
 });
+
+const isMobileBattleLayout = useMediaQuery("(max-width: 768px)");
 
 const message = useMessage();
 const tokenStore = useTokenStore();

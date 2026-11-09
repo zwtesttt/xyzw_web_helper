@@ -18,6 +18,7 @@ const expectedRuntimeFiles = [
   "game-defines.a175e.js",
   "main.2a00e.js",
   "cocos2d-js-min.a5841.js",
+  "viewport-helper.js",
   "xh.js",
   "sh1.js",
   "diagnose_require.js",

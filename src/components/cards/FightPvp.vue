@@ -1,5 +1,5 @@
 <template>
-  <div class="fight-pvp-container">
+  <div class="fight-pvp-container battle-responsive-page">
     <!-- 主卡片容器 -->
     <div class="status-card main-card">
       <!-- 卡片头部 -->
@@ -17,13 +17,47 @@
 
       <!-- 操作区域 -->
       <div class="action-section">
+        <div class="quick-target-row">
+          <n-select
+            v-model:value="selectedQuickTarget"
+            :options="quickTargetOptions"
+            filterable
+            clearable
+            :input-props="{ 'aria-label': '快捷选择切磋对手' }"
+            placeholder="快捷选择：游戏关注 / 本机收藏 / 我的角色 / 俱乐部成员 / 最近切磋"
+            class="quick-target-select"
+            size="medium"
+            @update:value="handleQuickTargetSelect"
+          />
+          <n-button
+            secondary
+            size="medium"
+            :loading="loadingFollowedFriends"
+            :disabled="loading1 || loadingClub"
+            @click="fetchFollowedFriends"
+            title="读取当前游戏角色关注的好友"
+          >
+            加载游戏关注
+          </n-button>
+          <n-button
+            secondary
+            size="medium"
+            :loading="loadingClub"
+            @click="fetchClubMembers"
+            title="拉取当前角色所在俱乐部的成员列表"
+          >
+            加载俱乐部
+          </n-button>
+        </div>
+
         <div class="input-group">
           <n-input
             v-model:value="targetId"
             type="text"
-            placeholder="请输入对手ID"
+            placeholder="请输入对手ID（或在上方快捷选择）"
             class="target-input"
             size="medium"
+            @keyup.enter="getTargetInfo"
           />
           <n-button
             type="primary"
@@ -38,7 +72,43 @@
             </template>
             查询对手
           </n-button>
+          <n-button
+            v-if="memberData && targetId"
+            :type="isFavorited ? 'warning' : 'default'"
+            size="medium"
+            @click="toggleFavoriteTarget"
+            :title="isFavorited ? '取消本机收藏' : '加入本机收藏，方便下次选择'"
+          >
+            <template #icon>
+              <n-icon>
+                <Star v-if="isFavorited" />
+                <StarOutline v-else />
+              </n-icon>
+            </template>
+            {{ isFavorited ? "已收藏" : "本机收藏" }}
+          </n-button>
         </div>
+
+        <div
+          v-if="loadingFollowedFriends || followedFriendsLoaded"
+          class="followed-friends-state"
+          role="status"
+          aria-live="polite"
+        >
+          <span v-if="loadingFollowedFriends">正在读取当前角色的游戏关注列表…</span>
+          <span v-else-if="followedFriends.length">
+            已加载 {{ followedFriends.length }} 名游戏关注好友；选择后会查询阵容
+          </span>
+          <span v-else>当前游戏角色没有关注好友</span>
+        </div>
+        <p
+          v-if="followedFriendsError"
+          class="followed-friends-error"
+          role="alert"
+          aria-live="assertive"
+        >
+          {{ followedFriendsError }}
+        </p>
 
         <div class="fight-options">
           <div class="option-item">
@@ -358,7 +428,7 @@
     <!-- 武将详情模态框 -->
     <n-modal
       v-model:show="showHeroModal"
-      class="hero-detail-modal"
+      class="hero-detail-modal battle-responsive-modal"
       preset="card"
       title="武将信息"
       size="large"
@@ -393,7 +463,7 @@
         </div>
 
         <div class="hero-modal-details">
-          <n-descriptions label-placement="left" column="3" bordered>
+          <n-descriptions label-placement="left" :column="isMobileBattleLayout ? 1 : 3" bordered>
             <n-descriptions-item label="战力">
               {{ heroModealTemp.power }}
             </n-descriptions-item>
@@ -523,11 +593,12 @@
 </template>
 
 <script setup>
-import { Copy, Refresh, Trophy } from "@vicons/ionicons5";
+import { Copy, Refresh, Star, StarOutline, Trophy } from "@vicons/ionicons5";
 
+import { useMediaQuery } from "@vueuse/core";
 import html2canvas from "html2canvas";
 import { useMessage } from "naive-ui";
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useTokenStore } from "@/stores/tokenStore";
 import { isSameGameValue } from "@/utils/gameValue.js";
 
@@ -539,6 +610,10 @@ import {
   legacycolor,
 } from "@/utils/HeroList";
 import { downloadCanvasAsImage } from "@/utils/imageExport";
+import {
+  fetchGameFollowedFriends,
+  formatFollowLoadError,
+} from "@/utils/pvpFriends.js";
 
 defineProps({
   visible: {
@@ -550,6 +625,8 @@ defineProps({
     default: false,
   },
 });
+
+const isMobileBattleLayout = useMediaQuery("(max-width: 768px)");
 
 // 确保legacycolor在模板中可用
 const legacyColorMap = legacycolor;
@@ -564,6 +641,294 @@ const topranklist = ref(null);
 
 const queryDate = ref("");
 const targetId = ref("");
+const followedFriends = ref([]);
+const loadingFollowedFriends = ref(false);
+const followedFriendsLoaded = ref(false);
+const followedFriendsError = ref("");
+let followedFriendsRequestId = 0;
+
+watch(
+  () => tokenStore.selectedToken?.id,
+  () => {
+    followedFriendsRequestId += 1;
+    followedFriends.value = [];
+    loadingFollowedFriends.value = false;
+    followedFriendsLoaded.value = false;
+    followedFriendsError.value = "";
+    selectedQuickTarget.value = null;
+  },
+);
+
+onUnmounted(() => {
+  followedFriendsRequestId += 1;
+});
+
+// 快捷选择与关注好友功能
+const STORAGE_FAVORITES_KEY = "xyzw_pvp_favorites";
+const STORAGE_HISTORY_KEY = "xyzw_pvp_recent_history";
+
+const loadFavorites = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_FAVORITES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveFavorites = (list) => {
+  try {
+    localStorage.setItem(STORAGE_FAVORITES_KEY, JSON.stringify(list));
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+const favoritesList = ref(loadFavorites());
+
+const isFavorited = computed(() => {
+  if (!targetId.value) return false;
+  return favoritesList.value.some(
+    (item) => String(item.id) === String(targetId.value).trim(),
+  );
+});
+
+const toggleFavoriteTarget = () => {
+  if (!targetId.value || !memberData.value) return;
+  const idStr = String(targetId.value).trim();
+  const existingIdx = favoritesList.value.findIndex(
+    (item) => String(item.id) === idStr,
+  );
+  if (existingIdx >= 0) {
+    favoritesList.value.splice(existingIdx, 1);
+    saveFavorites(favoritesList.value);
+    message.success("已取消本机收藏");
+  } else {
+    favoritesList.value.push({
+      id: idStr,
+      name: memberData.value.name || "对手",
+      serverName: memberData.value.serverName || "",
+      power: memberData.value.power || "",
+      headImg: memberData.value.headImg || "",
+    });
+    saveFavorites(favoritesList.value);
+    message.success(`已收藏「${memberData.value.name}」，可在本机收藏中选择`);
+  }
+};
+
+const fetchFollowedFriends = async () => {
+  const requestId = ++followedFriendsRequestId;
+  followedFriendsError.value = "";
+  followedFriends.value = [];
+  followedFriendsLoaded.value = false;
+  if (String(selectedQuickTarget.value || "").startsWith("game-follow:")) {
+    selectedQuickTarget.value = null;
+  }
+
+  const showError = (text) => {
+    if (requestId !== followedFriendsRequestId) return;
+    followedFriendsError.value = text;
+    message.error(text);
+  };
+
+  if (!tokenStore.selectedToken) {
+    showError("请先选择游戏角色，再加载关注列表");
+    return;
+  }
+  const tokenId = tokenStore.selectedToken.id;
+  if (tokenStore.getWebSocketStatus(tokenId) !== "connected") {
+    showError("WebSocket未连接，无法读取游戏关注列表");
+    return;
+  }
+
+  const isCurrentRequest = () =>
+    requestId === followedFriendsRequestId &&
+    tokenStore.selectedToken?.id === tokenId &&
+    tokenStore.getWebSocketStatus(tokenId) === "connected";
+
+  loadingFollowedFriends.value = true;
+  try {
+    const friends = await fetchGameFollowedFriends({
+      tokenId,
+      sendMessageWithPromise: tokenStore.sendMessageWithPromise,
+      isCurrent: isCurrentRequest,
+    });
+    if (!isCurrentRequest() || friends === null) return;
+    followedFriends.value = friends;
+    followedFriendsLoaded.value = true;
+    if (friends.length) {
+      message.success(`已加载 ${friends.length} 名游戏关注好友`);
+    } else {
+      message.info("当前游戏角色没有关注好友");
+    }
+  } catch (error) {
+    if (isCurrentRequest()) {
+      showError(formatFollowLoadError(error));
+    }
+  } finally {
+    if (requestId === followedFriendsRequestId) {
+      loadingFollowedFriends.value = false;
+    }
+  }
+};
+
+const loadHistory = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveHistory = (item) => {
+  try {
+    const list = loadHistory().filter((x) => String(x.id) !== String(item.id));
+    list.unshift(item);
+    if (list.length > 15) list.pop();
+    localStorage.setItem(STORAGE_HISTORY_KEY, JSON.stringify(list));
+    recentHistoryList.value = list;
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+const recentHistoryList = ref(loadHistory());
+
+const loadingClub = ref(false);
+const clubMemberList = ref([]);
+
+const fetchClubMembers = async () => {
+  if (!tokenStore.selectedToken) {
+    message.warning("请先选择当前角色");
+    return;
+  }
+  const tokenId = tokenStore.selectedToken.id;
+  const wsStatus = tokenStore.getWebSocketStatus(tokenId);
+  if (wsStatus !== "connected") {
+    message.error("WebSocket未连接，无法获取俱乐部成员");
+    return;
+  }
+  loadingClub.value = true;
+  try {
+    const resp = await tokenStore.sendMessageWithPromise(
+      tokenId,
+      "legion_getinfo",
+      {},
+      8000,
+    );
+    const members =
+      resp?.legionInfo?.info?.members ||
+      resp?.info?.members ||
+      resp?.members ||
+      tokenStore.gameData?.legionInfo?.info?.members ||
+      {};
+    const list = Object.values(members);
+    if (list.length > 0) {
+      clubMemberList.value = list.map((m) => ({
+        id: String(m.roleId || m.id),
+        name: m.name || "公会成员",
+        serverName: m.serverName || "",
+        power: formatPower(m.power),
+      }));
+      message.success(`已加载 ${clubMemberList.value.length} 名俱乐部成员`);
+    } else {
+      message.warning("未获取到俱乐部成员或当前角色未加入俱乐部");
+    }
+  } catch (e) {
+    message.error(`获取俱乐部成员失败: ${e.message}`);
+  } finally {
+    loadingClub.value = false;
+  }
+};
+
+const selectedQuickTarget = ref(null);
+
+const quickTargetOptions = computed(() => {
+  const groups = [];
+
+  if (followedFriends.value.length > 0) {
+    groups.push({
+      type: "group",
+      label: `⭐ 游戏关注 (${followedFriends.value.length})`,
+      key: "group-game-followed",
+      children: followedFriends.value.map((friend) => ({
+        label: `${friend.name}${friend.serverName ? ` [${friend.serverName}]` : ""}${friend.power ? ` (${formatPower(friend.power)})` : ""} - ID: ${friend.id}`,
+        value: `game-follow:${friend.id}`,
+      })),
+    });
+  }
+
+  // 收藏信息保留在此浏览器的旧本地存储中。
+  if (favoritesList.value.length > 0) {
+    groups.push({
+      type: "group",
+      label: `☆ 本机收藏 (${favoritesList.value.length})`,
+      key: "group-favorites",
+      children: favoritesList.value.map((fav) => ({
+        label: `${fav.name}${fav.serverName ? ` [${fav.serverName}]` : ""}${fav.power ? ` (${fav.power})` : ""} - ID: ${fav.id}`,
+        value: String(fav.id),
+      })),
+    });
+  }
+
+  // 2. 本地已导入的角色（排除当前角色）
+  const currentRoleId = tokenStore.selectedTokenRoleInfo?.role?.roleId;
+  const otherTokens = (tokenStore.gameTokens || []).filter(
+    (tok) => String(tok.roleId) !== String(currentRoleId) && tok.roleId,
+  );
+  if (otherTokens.length > 0) {
+    groups.push({
+      type: "group",
+      label: `👥 我的角色 (${otherTokens.length})`,
+      key: "group-tokens",
+      children: otherTokens.map((tok) => ({
+        label: `${tok.name}${tok.server ? ` [${tok.server}]` : ""} - ID: ${tok.roleId}`,
+        value: String(tok.roleId),
+      })),
+    });
+  }
+
+  // 3. 俱乐部成员
+  if (clubMemberList.value.length > 0) {
+    const otherMembers = clubMemberList.value.filter(
+      (m) => String(m.id) !== String(currentRoleId),
+    );
+    groups.push({
+      type: "group",
+      label: `🏰 俱乐部成员 (${otherMembers.length})`,
+      key: "group-club",
+      children: otherMembers.map((m) => ({
+        label: `${m.name}${m.power ? ` (${m.power})` : ""} - ID: ${m.id}`,
+        value: String(m.id),
+      })),
+    });
+  }
+
+  // 4. 最近切磋
+  if (recentHistoryList.value.length > 0) {
+    groups.push({
+      type: "group",
+      label: `🕒 最近切磋 (${recentHistoryList.value.length})`,
+      key: "group-history",
+      children: recentHistoryList.value.map((h) => ({
+        label: `${h.name}${h.power ? ` (${h.power})` : ""} - ID: ${h.id}`,
+        value: String(h.id),
+      })),
+    });
+  }
+
+  return groups;
+});
+
+const handleQuickTargetSelect = (val) => {
+  if (val) {
+    targetId.value = String(val).startsWith("game-follow:")
+      ? String(val).slice("game-follow:".length)
+      : String(val);
+    fetchTargetInfo();
+  }
+};
 
 //切磋对手信息
 const memberData = ref(null);
@@ -794,6 +1159,12 @@ const fetchTargetInfo = async () => {
     teamData.red = heroAndholdAndRed.redCount;
     teamData.legacy = result.roleInfo.legacy?.color || 0; // 功法等级
     memberData.value = teamData;
+    saveHistory({
+      id: String(targetId.value).trim(),
+      name: teamData.name || "对手",
+      serverName: teamData.serverName || "",
+      power: teamData.power || "",
+    });
     message.success("对手信息加载成功");
     return teamData;
   } catch (error) {
@@ -1021,6 +1392,30 @@ onMounted(() => {
 
 .action-section {
   margin-bottom: 24px;
+}
+
+.action-section .quick-target-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.action-section .quick-target-row .quick-target-select {
+  flex: 1;
+}
+
+.action-section .followed-friends-state {
+  margin: -2px 0 14px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.action-section .followed-friends-error {
+  margin: -6px 0 14px;
+  color: var(--error-color, #c62828);
+  font-size: 13px;
+  overflow-wrap: anywhere;
 }
 
 .action-section .input-group {
@@ -1772,8 +2167,13 @@ onMounted(() => {
     gap: 12px;
   }
 
+  .action-section .quick-target-row,
   .action-section .input-group {
     flex-direction: column;
+  }
+
+  .action-section .quick-target-row > * {
+    width: 100%;
   }
 
   .result-card .card-title .result-summary {

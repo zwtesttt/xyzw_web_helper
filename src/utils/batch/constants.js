@@ -30,7 +30,7 @@ export const bossTimesOptions = [0, 1, 2, 3, 4].map((v) => ({
 
 // 可用的定时任务列表
 export const availableTasks = [
-  { label: "日常任务", value: "startBatch" },
+  { label: "一键日常收菜组合包", value: "startBatch" },
   { label: "领取挂机", value: "claimHangUpRewards" },
   { label: "一键加钟", value: "batchAddHangUpTime" },
   { label: "重置罐子", value: "resetBottles" },
@@ -51,6 +51,7 @@ export const availableTasks = [
   { label: "营地挑战", value: "batchCampChallenge" },
   { label: "营地挑战宠物", value: "batchCampChallengePet" },
   { label: "领取营地任务奖励", value: "batchCampClaimTasks" },
+  { label: "星级挑战", value: "batchStarChallenge" },
   { label: "批量申请俱乐部", value: "batchApplyLegion" },
   { label: "一键竞技场战斗3次", value: "batcharenafight" },
   { label: "一键钓鱼补齐", value: "batchTopUpFish" },
@@ -141,6 +142,11 @@ export const defaultBatchSettings = {
   maxLogEntries: 1000,
   cdkCodes: "",
   cdkPlatformType: "h5",
+  starChallengeBossIds: [1, 2, 3, 4, 5, 6, 7, 8],
+  starChallengeFormationSource: "saved",
+  starChallengeMaxAttempts: 1,
+  starChallengeTargetStars: 3,
+  starChallengeClaimRewards: true,
 };
 
 // 默认模板

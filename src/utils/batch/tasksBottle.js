@@ -9,6 +9,8 @@
  * @returns {object} 任务函数集合
  */
 export function createTasksBottle(deps) {
+  const sleep = deps.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const logError = deps.onError || ((...args) => globalThis.console.error(...args));
   const {
     selectedTokens,
     tokens,
@@ -67,7 +69,7 @@ export function createTasksBottle(deps) {
           5000,
         );
 
-        await new Promise((r) => setTimeout(r, 500));
+        await sleep(500);
 
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -88,7 +90,7 @@ export function createTasksBottle(deps) {
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -143,7 +145,7 @@ export function createTasksBottle(deps) {
           {},
           5000,
         );
-        await new Promise((r) => setTimeout(r, 500));
+        await sleep(500);
         tokenStatus.value[tokenId] = "completed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -151,7 +153,7 @@ export function createTasksBottle(deps) {
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),

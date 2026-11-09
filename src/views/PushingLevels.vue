@@ -1,5 +1,5 @@
 <template>
-  <div class="pushing-levels-page">
+  <div class="pushing-levels-page" :class="{ 'pushing-levels-page--embedded': props.embedded }">
     <div class="pl-header">
       <div>
         <h2>战斗推关</h2>
@@ -58,6 +58,7 @@
           :key="gameToken.id"
           class="token-cell"
           :class="{ selected: selectedTokenIds.includes(gameToken.id) }"
+          @click="toggleToken(gameToken.id, !selectedTokenIds.includes(gameToken.id))"
         >
           <n-checkbox
             :checked="selectedTokenIds.includes(gameToken.id)"
@@ -283,6 +284,7 @@ import {
 } from "vue";
 import { useTokenStore } from "@/stores/tokenStore";
 import { BOSS_NAMES } from "./boss_names.js";
+const props = defineProps({ embedded: Boolean });
 
 const MAX_LOGS = 2000;
 const KNOWLEDGE_COIN_ITEM_ID = 1024;
@@ -1813,16 +1815,62 @@ onBeforeUnmount(() => {
   .pl-header {
     align-items: flex-start;
     flex-direction: column;
+    gap: 8px;
+  }
+
+  .account-toolbar {
+    width: 100%;
+  }
+
+  .search-input {
+    flex: 1 1 140px;
+  }
+
+  .token-cell {
+    min-height: 40px;
+    padding: 8px 10px;
+  }
+
+  .control-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .torch-field {
+    width: 100%;
+  }
+
+  .torch-select,
+  .torch-input {
+    width: 100%;
+  }
+
+  .control-spacer {
+    display: none;
+  }
+
+  .status-text {
+    grid-column: 1 / -1;
+    white-space: normal;
+    font-size: 12px;
   }
 
   .log-item {
     grid-template-columns: 64px minmax(80px, 110px) minmax(0, 1fr);
   }
 
-  .torch-select,
-  .torch-input,
   .log-filter-select {
-    width: 100px;
+    flex: 1 1 140px;
+    width: auto;
   }
+}
+.pushing-levels-page--embedded {
+  height: auto;
+  min-height: 100%;
+  padding: 12px;
+  overflow: visible;
+  background: transparent;
 }
 </style>

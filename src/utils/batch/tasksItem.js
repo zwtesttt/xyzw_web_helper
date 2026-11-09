@@ -1,5 +1,5 @@
-import { HERO_DICT } from "@/utils/HeroList";
-import { PEACH_TASKS } from "@/utils/PeachTaskIds";
+import { HERO_DICT } from "../HeroList.js";
+import { PEACH_TASKS } from "../PeachTaskIds.js";
 
 /**
  * 开箱、钓鱼、招募类任务
@@ -12,6 +12,8 @@ import { PEACH_TASKS } from "@/utils/PeachTaskIds";
  * @returns {object} 任务函数集合
  */
 export function createTasksItem(deps) {
+  const sleep = deps.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const logError = deps.onError || ((...args) => globalThis.console.error(...args));
   const {
     selectedTokens,
     tokens,
@@ -163,7 +165,7 @@ export function createTasksItem(deps) {
             });
           }
 
-          await new Promise((r) => setTimeout(r, delayConfig.action));
+          await sleep(delayConfig.action);
         }
 
         await tokenStore.sendMessage(tokenId, "role_getroleinfo");
@@ -174,7 +176,7 @@ export function createTasksItem(deps) {
           type: failedCount > 0 ? "warning" : "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -260,7 +262,7 @@ export function createTasksItem(deps) {
               // 失败则停止当前英雄的升星尝试
               break;
             }
-            await new Promise((r) => setTimeout(r, delayConfig.action));
+            await sleep(delayConfig.action);
           }
         }
 
@@ -271,7 +273,7 @@ export function createTasksItem(deps) {
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -351,7 +353,7 @@ export function createTasksItem(deps) {
               // 失败则停止当前英雄的图鉴升星尝试
               break;
             }
-            await new Promise((r) => setTimeout(r, delayConfig.action));
+            await sleep(delayConfig.action);
           }
         }
 
@@ -362,7 +364,7 @@ export function createTasksItem(deps) {
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -436,7 +438,7 @@ export function createTasksItem(deps) {
             // 失败则停止尝试
             break;
           }
-          await new Promise((r) => setTimeout(r, delayConfig.action));
+          await sleep(delayConfig.action);
         }
 
         tokenStatus.value[tokenId] = "completed";
@@ -446,7 +448,7 @@ export function createTasksItem(deps) {
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -514,7 +516,7 @@ export function createTasksItem(deps) {
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -619,7 +621,7 @@ export function createTasksItem(deps) {
             } catch (err) {
               // ignore
             }
-            await new Promise((r) => setTimeout(r, delayConfig.action));
+            await sleep(delayConfig.action);
           }
 
           // Check and claim point rewards (Moved out of loop to ensure execution)
@@ -658,7 +660,7 @@ export function createTasksItem(deps) {
                     message: `${token.name} 领取俱乐部任务奖励 (当前积分: ${legionPoint})`,
                     type: "success",
                   });
-                  await new Promise((r) => setTimeout(r, 1000));
+                  await sleep(1000);
                 } catch (e) {
                   addLog({
                     time: new Date().toLocaleTimeString(),
@@ -685,7 +687,7 @@ export function createTasksItem(deps) {
                     message: `${token.name} 领取个人任务奖励 (当前积分: ${selfPoint})`,
                     type: "success",
                   });
-                  await new Promise((r) => setTimeout(r, 1000));
+                  await sleep(1000);
                 } catch (e) {
                   addLog({
                     time: new Date().toLocaleTimeString(),
@@ -696,7 +698,7 @@ export function createTasksItem(deps) {
               }
             }
           } catch (err) {
-            console.error("领取蟠桃园积分奖励异常:", err);
+            logError("领取蟠桃园积分奖励异常:", err);
             addLog({
               time: new Date().toLocaleTimeString(),
               message: `${token.name} 领取积分奖励异常: ${err.message}`,
@@ -726,7 +728,7 @@ export function createTasksItem(deps) {
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -895,7 +897,7 @@ export function createTasksItem(deps) {
           }
 
           if (remainingTickets > 0) {
-            await new Promise((r) => setTimeout(r, delayConfig.action));
+            await sleep(delayConfig.action);
           }
         }
 
@@ -908,7 +910,7 @@ export function createTasksItem(deps) {
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -980,7 +982,7 @@ export function createTasksItem(deps) {
             message: `${token.name} 开箱进度: ${(i + 1) * 10}/${totalCount}`,
             type: "info",
           });
-          await new Promise((r) => setTimeout(r, delayConfig.action));
+          await sleep(delayConfig.action);
         }
 
         if (remainder > 0 && !shouldStop.value) {
@@ -1000,7 +1002,7 @@ export function createTasksItem(deps) {
           tokenId,
           "item_batchclaimboxpointreward",
         );
-        await new Promise((r) => setTimeout(r, delayConfig.action));
+        await sleep(delayConfig.action);
         await tokenStore.sendMessage(tokenId, "role_getroleinfo");
         tokenStatus.value[tokenId] = "completed";
         addLog({
@@ -1009,7 +1011,7 @@ export function createTasksItem(deps) {
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -1159,7 +1161,7 @@ export function createTasksItem(deps) {
             }
           }
 
-          await new Promise((r) => setTimeout(r, delayConfig.action));
+          await sleep(delayConfig.action);
         }
 
         if (remainder > 0 && !shouldStop.value) {
@@ -1204,7 +1206,7 @@ export function createTasksItem(deps) {
                     3000,
                   );
                   // 稍微延迟，避免请求过快
-                  await new Promise((r) => setTimeout(r, 500));
+                  await sleep(500);
                 } catch (err) {
                   addLog({
                     time: new Date().toLocaleTimeString(),
@@ -1236,7 +1238,7 @@ export function createTasksItem(deps) {
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -1313,7 +1315,7 @@ export function createTasksItem(deps) {
             message: `招募进度: ${(i + 1) * 10}/${totalCount}`,
             type: "info",
           });
-          await new Promise((r) => setTimeout(r, delayConfig.action));
+          await sleep(delayConfig.action);
         }
 
         if (remainder > 0 && !shouldStop.value) {
@@ -1338,7 +1340,7 @@ export function createTasksItem(deps) {
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -1582,7 +1584,7 @@ export function createTasksItem(deps) {
               message: `${token.name} ${box.name} 开箱进度: ${(i + 1) * 10}/${count}`,
               type: "info",
             });
-            await new Promise((r) => setTimeout(r, delayConfig.action));
+            await sleep(delayConfig.action);
           }
 
           if (remainder > 0 && !shouldStop.value) {
@@ -1608,7 +1610,7 @@ export function createTasksItem(deps) {
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),

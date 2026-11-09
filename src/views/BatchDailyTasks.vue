@@ -1,10 +1,57 @@
 <template>
-  <div class="batch-daily-tasks">
+  <div class="batch-daily-tasks" :class="{ 'batch-daily-tasks--embedded': props.embedded }">
     <div class="main-layout">
       <!-- Left Column -->
       <div class="left-column">
+        <!-- Embedded workspace toolbar; standalone view retains its original header. -->
+        <section v-if="props.embedded" class="batch-workspace-toolbar" aria-label="批量日常控制">
+          <div class="batch-workspace-toolbar__heading">
+            <div>
+              <strong>批量日常</strong>
+              <span>{{ selectedTokens.length }} 个角色已选</span>
+            </div>
+            <div class="batch-workspace-toolbar__primary-actions">
+              <n-button
+                type="primary"
+                size="medium"
+                :disabled="isRunning || selectedTokens.length === 0"
+                @click="startBatch"
+              >
+                {{ isRunning ? "执行中…" : "开始执行" }}
+              </n-button>
+              <n-button type="error" size="medium" :disabled="!isRunning" @click="stopBatch">
+                停止
+              </n-button>
+              <button
+                type="button"
+                class="batch-log-jump-btn"
+                @click="scrollToBatchLogs"
+              >
+                日志 ({{ logs.length }})
+              </button>
+              <n-button
+                size="medium"
+                type="default"
+                class="batch-tools-btn"
+                @click="showBatchToolsModal = true"
+              >
+                设置与工具
+              </n-button>
+              <n-button size="medium" @click="openTenPalaceTeam">十殿组队与计划</n-button>
+            </div>
+          </div>
+          <div v-if="isRunning || currentRunningTokenName" class="batch-live-strip" @click="scrollToBatchLogs">
+            <span class="batch-live-strip__dot" aria-hidden="true"></span>
+            <span class="batch-live-strip__text">
+              {{ currentRunningTokenName ? `正在执行：${currentRunningTokenName}` : '任务运行中' }} · 进度 {{ currentProgress }}%
+            </span>
+            <span class="batch-live-strip__link">查看实时日志 ↓</span>
+          </div>
+        </section>
+
         <!-- Header -->
         <div
+          v-else
           class="page-header"
           style="
             display: flex;
@@ -20,54 +67,34 @@
               style="
                 display: flex;
                 align-items: center;
-                gap: 12px;
+                gap: 8px;
                 padding: 8px 12px;
                 background-color: #f8f9fa;
                 border-radius: 8px;
                 border: 1px solid #e9ecef;
               "
             >
-              <div style="font-size: 14px; color: #495057">
-                共 {{ scheduledTasks.length }} 个定时任务
-              </div>
-              <div
-                v-if="shortestCountdownTask"
-                style="font-size: 14px; font-weight: 500; color: #1677ff"
+              <n-button size="small" @click="exportConfig">
+                导出配置
+              </n-button>
+              <n-upload
+                :show-file-list="false"
+                accept=".json"
+                :custom-request="importConfig"
               >
-                即将执行：{{ shortestCountdownTask.task.name }} ({{
-                  shortestCountdownTask.countdown.formatted
-                }})
-              </div>
-              <div v-else style="font-size: 14px; color: #6c757d">
-                暂无定时任务
-              </div>
-              <div style="display: flex; gap: 8px">
-                <n-button type="primary" size="small" @click="openTaskModal">
-                  新增定时任务
-                </n-button>
-                <n-button size="small" @click="showTasksModal = true">
-                  查看定时任务
-                </n-button>
-                <n-button size="small" @click="exportConfig">
-                  导出配置
-                </n-button>
-                <n-upload
-                  :show-file-list="false"
-                  accept=".json"
-                  :custom-request="importConfig"
-                >
-                  <n-button size="small">导入配置</n-button>
-                </n-upload>
-              </div>
+                <n-button size="small">导入配置</n-button>
+              </n-upload>
               <div
                 class="setting-item"
                 style="
                   flex-direction: row;
                   justify-content: space-between;
                   align-items: center;
+                  gap: 8px;
+                  margin: 0;
                 "
               >
-                <label class="setting-label">黑市采购清单配置</label>
+                <label class="setting-label">黑市采购清单</label>
                 <n-button size="small" @click="openBlackMarketPurchaseModal">
                   点击配置
                 </n-button>
@@ -116,6 +143,7 @@
               </template>
               设置
             </n-button>
+            <n-button size="medium" @click="openTenPalaceTeam">十殿组队与计划</n-button>
           </div>
         </div>
 
@@ -247,7 +275,7 @@
               <n-grid
                 :x-gap="12"
                 :y-gap="8"
-                :cols="batchSettings.tokenListColumns"
+                :cols="props.embedded ? 1 : batchSettings.tokenListColumns"
               >
                 <n-grid-item
                   v-for="gameToken in sortedTokens"
@@ -255,6 +283,7 @@
                 >
                   <div class="token-row">
                     <n-checkbox
+                      class="embedded-token-checkbox"
                       :value="gameToken.id"
                       :label="gameToken.name"
                       style="flex: 1"
@@ -314,117 +343,163 @@
 
         <!-- Batch Functions -->
         <n-card title="批量功能列表" style="margin-top: 16px">
+          <!-- 一键日常收菜组合包 Quick Banner -->
+          <div class="quick-batch-banner">
+            <div class="quick-batch-banner__main">
+              <div class="quick-batch-banner__title">
+                <span class="quick-batch-banner__icon">⚡</span>
+                <span class="quick-batch-banner__text">一键日常收菜组合包</span>
+                <n-tag size="small" type="success" round :bordered="false">推荐日常</n-tag>
+              </div>
+              <div class="quick-batch-banner__desc">
+                自动执行：挂机奖励 · 罐子补领 · 俱乐部签到 · 每日答题 · 竞技场 · 黑市采购 · 灯神扫荡
+              </div>
+            </div>
+            <div class="quick-batch-banner__cta">
+              <n-button
+                type="primary"
+                size="medium"
+                class="quick-batch-btn"
+                :disabled="isRunning || selectedTokens.length === 0"
+                @click="startBatch"
+              >
+                {{ isRunning ? "日常执行中..." : `一键执行 (${selectedTokens.length}个角色)` }}
+              </n-button>
+            </div>
+          </div>
+
           <n-tabs type="line" animated>
             <n-tab-pane name="daily" tab="日常">
-              <n-space>
-                <n-button
-                  size="small"
-                  @click="claimHangUpRewards"
-                  :disabled="isRunning || selectedTokens.length === 0"
-                >
-                  领取挂机
-                </n-button>
-                <n-button
-                  size="small"
-                  @click="batchAddHangUpTime"
-                  :disabled="isRunning || selectedTokens.length === 0"
-                >
-                  一键加钟
-                </n-button>
-                <n-button
-                  size="small"
-                  @click="resetBottles"
-                  :disabled="isRunning || selectedTokens.length === 0"
-                >
-                  重置罐子
-                </n-button>
-                <n-button
-                  size="small"
-                  @click="batchlingguanzi"
-                  :disabled="isRunning || selectedTokens.length === 0"
-                >
-                  一键领取罐子
-                </n-button>
-                <n-button
-                  size="small"
-                  @click="batchclubsign"
-                  :disabled="isRunning || selectedTokens.length === 0"
-                >
-                  一键俱乐部签到
-                </n-button>
-                <n-button
-                  size="small"
-                  @click="openApplyLegionModal"
-                  :disabled="isRunning || selectedTokens.length === 0"
-                >
-                  批量申请俱乐部
-                </n-button>
-                <n-button
-                  size="small"
-                  @click="batchStudy"
-                  :disabled="isRunning || selectedTokens.length === 0"
-                >
-                  一键答题
-                </n-button>
-                <n-button
-                  size="small"
-                  @click="batcharenafight"
-                  :disabled="
-                    isRunning ||
-                    selectedTokens.length === 0 ||
-                    !isarenaActivityOpen
-                  "
-                >
-                  一键竞技场战斗3次
-                </n-button>
-                <n-button
-                  size="small"
-                  @click="store_syncpurchaseconfig"
-                  :disabled="isRunning || selectedTokens.length === 0"
-                >
-                  一键配置黑市清单
-                </n-button>
-                <n-button
-                  size="small"
-                  @click="store_purchase"
-                  :disabled="isRunning || selectedTokens.length === 0"
-                >
-                  一键黑市采购
-                </n-button>
-                <n-button
-                  size="small"
-                  @click="collection_claimfreereward"
-                  :disabled="isRunning || selectedTokens.length === 0"
-                >
-                  一键领取珍宝阁
-                </n-button>
-                <n-button
-                  size="small"
-                  @click="batchGenieSweep"
-                  :disabled="isRunning || selectedTokens.length === 0"
-                >
-                  一键灯神扫荡
-                </n-button>
-                <n-popselect
-                  :value="campChallengeMode"
-                  :options="campChallengeModeOptions"
-                  trigger="click"
-                  @update:value="onCampChallengeModeChange"
-                >
+              <n-space vertical :size="8" style="width: 100%;">
+                <n-space>
                   <n-button
+                    type="primary"
+                    secondary
                     size="small"
+                    @click="batchStudy"
                     :disabled="isRunning || selectedTokens.length === 0"
                   >
-                    营地挑战({{ campChallengeModeLabel }})
+                    一键答题
                   </n-button>
-                </n-popselect>
-                <n-button
-                  size="small"
-                  @click="batchXuanwuBlessing"
-                  :disabled="isRunning || selectedTokens.length === 0"
-                >
-                  一键玄武赐福
-                </n-button>
+                  <n-popselect
+                    :value="campChallengeMode"
+                    :options="campChallengeModeOptions"
+                    trigger="click"
+                    @update:value="onCampChallengeModeChange"
+                  >
+                    <n-button
+                      size="small"
+                      :disabled="isRunning || selectedTokens.length === 0"
+                    >
+                      营地挑战({{ campChallengeModeLabel }})
+                    </n-button>
+                  </n-popselect>
+                  <n-button
+                    size="small"
+                    @click="openApplyLegionModal"
+                    :disabled="isRunning || selectedTokens.length === 0"
+                  >
+                    批量申请俱乐部
+                  </n-button>
+                  <n-button
+                    size="small"
+                    @click="batchXuanwuBlessing"
+                    :disabled="isRunning || selectedTokens.length === 0"
+                  >
+                    一键玄武赐福
+                  </n-button>
+                  <n-button
+                    size="small"
+                    @click="store_syncpurchaseconfig"
+                    :disabled="isRunning || selectedTokens.length === 0"
+                  >
+                    配置黑市清单
+                  </n-button>
+                </n-space>
+
+                <details class="sub-tasks-accordion" style="margin-top: 4px;">
+                  <summary style="font-size: 12px; color: #86909c; cursor: pointer; user-select: none;">
+                    展开独立单项调试（组合包已包含，仅在单独测试单项时使用）
+                  </summary>
+                  <n-space style="margin-top: 8px;">
+                    <n-button
+                      size="tiny"
+                      quaternary
+                      @click="claimHangUpRewards"
+                      :disabled="isRunning || selectedTokens.length === 0"
+                    >
+                      领取挂机
+                    </n-button>
+                    <n-button
+                      size="tiny"
+                      quaternary
+                      @click="batchAddHangUpTime"
+                      :disabled="isRunning || selectedTokens.length === 0"
+                    >
+                      一键加钟
+                    </n-button>
+                    <n-button
+                      size="tiny"
+                      quaternary
+                      @click="resetBottles"
+                      :disabled="isRunning || selectedTokens.length === 0"
+                    >
+                      重置罐子
+                    </n-button>
+                    <n-button
+                      size="tiny"
+                      quaternary
+                      @click="batchlingguanzi"
+                      :disabled="isRunning || selectedTokens.length === 0"
+                    >
+                      一键领取罐子
+                    </n-button>
+                    <n-button
+                      size="tiny"
+                      quaternary
+                      @click="batchclubsign"
+                      :disabled="isRunning || selectedTokens.length === 0"
+                    >
+                      俱乐部签到
+                    </n-button>
+                    <n-button
+                      size="tiny"
+                      quaternary
+                      @click="batcharenafight"
+                      :disabled="
+                        isRunning ||
+                        selectedTokens.length === 0 ||
+                        !isarenaActivityOpen
+                      "
+                    >
+                      竞技场3次
+                    </n-button>
+                    <n-button
+                      size="tiny"
+                      quaternary
+                      @click="store_purchase"
+                      :disabled="isRunning || selectedTokens.length === 0"
+                    >
+                      黑市采购
+                    </n-button>
+                    <n-button
+                      size="tiny"
+                      quaternary
+                      @click="collection_claimfreereward"
+                      :disabled="isRunning || selectedTokens.length === 0"
+                    >
+                      领取珍宝阁
+                    </n-button>
+                    <n-button
+                      size="tiny"
+                      quaternary
+                      @click="batchGenieSweep"
+                      :disabled="isRunning || selectedTokens.length === 0"
+                    >
+                      灯神扫荡
+                    </n-button>
+                  </n-space>
+                </details>
               </n-space>
             </n-tab-pane>
             <n-tab-pane name="dungeon" tab="副本">
@@ -453,6 +528,13 @@
                   :disabled="isRunning || selectedTokens.length === 0"
                 >
                   一键换皮闯关
+                </n-button>
+                <n-button
+                  size="small"
+                  @click="batchStarChallenge()"
+                  :disabled="isRunning || selectedTokens.length === 0"
+                >
+                  星级挑战
                 </n-button>
                 <n-button
                   size="small"
@@ -717,7 +799,7 @@
       </div>
 
       <!-- Right Column - Execution Log -->
-      <div class="right-column">
+      <div ref="rightLogColumnRef" class="right-column">
         <n-card class="log-card">
           <template #header>
             <div class="custom-card-header">
@@ -769,14 +851,38 @@
       </div>
     </div>
 
+    <!-- Workspace Tools Modal -->
+    <n-modal
+      v-model:show="showBatchToolsModal"
+      preset="card"
+      title="设置与工具"
+      class="workspace-tools-modal"
+      style="width: 92%; max-width: 480px; border-radius: 16px;"
+    >
+      <div class="batch-workspace-tools__content" style="margin-top: 0;">
+        <div class="batch-workspace-tool-actions batch-workspace-utility-actions" style="margin-top: 0;">
+          <n-button type="info" @click="openTemplateManagerModal">任务模板</n-button>
+          <n-button @click="openBatchSettings">批量设置</n-button>
+          <n-button @click="openBlackMarketPurchaseModal">黑市清单</n-button>
+          <n-button @click="exportConfig">导出配置</n-button>
+          <n-upload :show-file-list="false" accept=".json" :custom-request="importConfig">
+            <n-button>导入配置</n-button>
+          </n-upload>
+        </div>
+      </div>
+    </n-modal>
+
     <!-- Settings Modal -->
     <n-modal
+      :class="{ 'workspace-settings-modal': embedded }"
       v-model:show="showSettingsModal"
       preset="card"
       :title="`任务设置 - ${currentSettingsTokenName}`"
+      :closable="!savingSettings"
+      :mask-closable="!savingSettings"
       style="width: 90%; max-width: 400px"
     >
-      <div class="settings-content">
+      <div class="settings-content" :class="{ 'workspace-settings-content': embedded }">
         <div class="settings-grid">
           <div class="setting-item">
             <label class="setting-label">竞技场阵容</label>
@@ -832,29 +938,39 @@
               ><n-switch v-model:value="currentSettings.claimEmail" />
             </div>
             <div class="switch-row">
-              <span class="switch-label">黑市购买物品</span
+              <span class="switch-label">黑市购买物品（每日购买1次完成日常）</span
               ><n-switch v-model:value="currentSettings.blackMarketPurchase" />
+            </div>
+            <div class="switch-row">
+              <span class="switch-label">赠送好友金币</span
+              ><n-switch v-model:value="currentSettings.sendFriendGold" />
+            </div>
+            <div class="switch-row">
+              <span class="switch-label">免费点金</span
+              ><n-switch v-model:value="currentSettings.buyGold" />
             </div>
             <div class="switch-row">
               <span class="switch-label">付费招募</span
               ><n-switch v-model:value="currentSettings.payRecruit" />
             </div>
           </div>
+          <p class="field-hint">开关会同步到关联的托管计划；阵容仅在本次修改时同步，保留计划专用阵容。</p>
         </div>
         <div class="modal-actions" style="margin-top: 20px; text-align: right">
-          <n-button type="primary" @click="saveSettings">保存设置</n-button>
+          <n-button type="primary" :loading="savingSettings" :disabled="savingSettings" @click="saveSettings">保存设置</n-button>
         </div>
       </div>
     </n-modal>
 
     <!-- Task Template Modal -->
     <n-modal
+      :class="{ 'workspace-settings-modal': embedded }"
       v-model:show="showTaskTemplateModal"
       preset="card"
       :title="currentTemplateId ? '编辑任务模板' : '任务模板设置'"
       style="width: 90%; max-width: 400px"
     >
-      <div class="settings-content">
+      <div class="settings-content" :class="{ 'workspace-settings-content': embedded }">
         <div class="settings-grid">
           <div class="setting-item">
             <label class="setting-label">模板名称</label>
@@ -918,8 +1034,16 @@
               ><n-switch v-model:value="currentTemplate.claimEmail" />
             </div>
             <div class="switch-row">
-              <span class="switch-label">黑市购买物品</span
+              <span class="switch-label">黑市购买物品（每日购买1次完成日常）</span
               ><n-switch v-model:value="currentTemplate.blackMarketPurchase" />
+            </div>
+            <div class="switch-row">
+              <span class="switch-label">赠送好友金币</span
+              ><n-switch v-model:value="currentTemplate.sendFriendGold" />
+            </div>
+            <div class="switch-row">
+              <span class="switch-label">免费点金</span
+              ><n-switch v-model:value="currentTemplate.buyGold" />
             </div>
             <div class="switch-row">
               <span class="switch-label">付费招募</span
@@ -940,12 +1064,13 @@
 
     <!-- Apply Template Modal -->
     <n-modal
+      :class="{ 'workspace-settings-modal': embedded }"
       v-model:show="showApplyTemplateModal"
       preset="card"
       title="应用任务模板"
-      style="width: 90%; max-width: 600px"
+      style="width: 90%; max-width: 820px"
     >
-      <div class="settings-content">
+      <div class="settings-content server-plan-modal-content" :class="{ 'workspace-settings-content': embedded }">
         <div class="settings-grid">
           <div class="setting-item">
             <label class="setting-label">选择模板</label>
@@ -1045,12 +1170,13 @@
 
     <!-- Template Manager Modal -->
     <n-modal
+      :class="{ 'workspace-settings-modal': embedded }"
       v-model:show="showTemplateManagerModal"
       preset="card"
       title="任务模板管理"
       style="width: 90%; max-width: 800px"
     >
-      <div class="settings-content">
+      <div class="settings-content" :class="{ 'workspace-settings-content': embedded }">
         <div
           class="modal-header-actions"
           style="
@@ -1140,12 +1266,13 @@
 
     <!-- Account Template References Modal -->
     <n-modal
+      :class="{ 'workspace-settings-modal': embedded }"
       v-model:show="showAccountTemplateModal"
       preset="card"
       title="账号模板引用查看"
       style="width: 90%; max-width: 800px"
     >
-      <div class="settings-content">
+      <div class="settings-content" :class="{ 'workspace-settings-content': embedded }">
         <div
           class="modal-header-actions"
           style="
@@ -1223,12 +1350,13 @@
 
     <!-- Legacy Gift Modal -->
     <n-modal
+      :class="{ 'workspace-settings-modal': embedded }"
       v-model:show="showLegacyGiftModal"
       preset="card"
       title="批量功法残卷赠送"
       style="width: 90%; max-width: 600px"
     >
-      <div class="settings-content">
+      <div class="settings-content" :class="{ 'workspace-settings-content': embedded }">
         <div class="settings-grid">
           <!-- 接收者ID输入 -->
           <div class="setting-item">
@@ -1511,12 +1639,13 @@
 
     <!-- Helper Modal (开箱/钓鱼/招募/按积分开箱) -->
     <n-modal
+      :class="{ 'workspace-settings-modal': embedded }"
       v-model:show="showHelperModal"
       preset="card"
       :title="helperModalTitle"
       style="width: 90%; max-width: 400px"
     >
-      <div class="settings-content">
+      <div class="settings-content" :class="{ 'workspace-settings-content': embedded }">
         <div class="settings-grid">
           <div class="setting-item" v-if="helperType === 'box'">
             <label class="setting-label">宝箱类型</label>
@@ -1575,12 +1704,13 @@
 
     <!-- Redeem Code Modal -->
     <n-modal
+      :class="{ 'workspace-settings-modal': embedded }"
       v-model:show="showRedeemCodeModal"
       preset="card"
       title="一键使用兑换码"
       style="width: 90%; max-width: 560px"
     >
-      <div class="settings-content">
+      <div class="settings-content" :class="{ 'workspace-settings-content': embedded }">
         <n-alert type="info" show-icon style="margin-bottom: 12px">
           每行填写一个兑换码，也支持用空格、逗号或分号分隔。执行时会先读取角色已兑换记录，已使用的兑换码会自动跳过。
         </n-alert>
@@ -1625,12 +1755,13 @@
 
     <!-- Dream Buy Modal -->
     <n-modal
+      :class="{ 'workspace-settings-modal': embedded }"
       v-model:show="showDreamBuyModal"
       preset="card"
       title="梦境商品购买配置"
       style="width: 90%; max-width: 600px"
     >
-      <div class="settings-content">
+      <div class="settings-content" :class="{ 'workspace-settings-content': embedded }">
         <div class="settings-grid">
           <n-alert type="info" show-icon style="margin-bottom: 12px">
             请勾选需要购买的商品。只会购买列表中存在的商品。
@@ -1685,17 +1816,41 @@
 
     <!-- Black Market Purchase Modal -->
     <n-modal
+      :class="{ 'workspace-settings-modal': embedded }"
       v-model:show="showBlackMarketPurchaseModal"
       preset="card"
       title="黑市采购清单配置"
       style="width: 90%; max-width: 760px"
     >
-      <div class="settings-content">
+      <div class="settings-content" :class="{ 'workspace-settings-content': embedded }">
         <n-alert type="info" show-icon style="margin-bottom: 12px">
           这里保存的是要下发到游戏服务器的黑市采购清单。每条填写 `itemId`
           和折扣，折扣范围
           1-10；保存后需手动执行“一键配置黑市清单”才会真正写入服务器。
         </n-alert>
+        <div class="setting-item" style="max-width: 360px; margin-bottom: 16px">
+          <label for="global-black-market-count-input" class="setting-label">采购次数</label>
+          <n-input-number
+            v-model:value="blackMarketPurchaseCount"
+            :input-props="{
+              id: 'global-black-market-count-input',
+              'aria-label': '黑市采购次数',
+              'aria-describedby': isBlackMarketPurchaseCountValid(blackMarketPurchaseCount) ? 'global-black-market-count-help' : 'global-black-market-count-help global-black-market-count-error',
+              'aria-invalid': !isBlackMarketPurchaseCountValid(blackMarketPurchaseCount),
+            }"
+            :min="1"
+            :max="2147483647"
+            :precision="0"
+            clearable
+            placeholder="留空沿用游戏设置"
+          />
+          <p id="global-black-market-count-help" class="field-hint">
+            留空沿用游戏已有设置；实际可购次数由游戏限制。
+          </p>
+          <p v-if="!isBlackMarketPurchaseCountValid(blackMarketPurchaseCount)" id="global-black-market-count-error" class="field-hint field-hint--error" role="alert">
+            采购次数必须留空或为 1–2147483647 的整数。
+          </p>
+        </div>
 
         <div style="display: flex; gap: 12px; margin-bottom: 12px">
           <n-button
@@ -1718,6 +1873,7 @@
         <div
           v-for="(item, itemIndex) in blackMarketPurchaseList"
           :key="`${itemIndex}-${item.itemId ?? 'new'}`"
+          :class="{ 'workspace-black-market-row': embedded }"
           style="
             display: grid;
             grid-template-columns: 220px 120px 120px 1fr 96px;
@@ -1799,9 +1955,17 @@
               margin-bottom: 8px;
             "
           >
-            <div style="font-weight: bold">{{ task.name }}</div>
+            <div style="font-weight: bold">
+              {{ task.name }}
+              <span v-if="task.execution === 'server'" class="plan-execution-badge">☁️ 云端托管 · 北京时间</span>
+              <span v-else-if="task.execution === 'server-pending'" class="plan-execution-badge plan-execution-badge--pending">⏳ 同步待确认</span>
+              <span v-else-if="task.execution === 'server-missing'" class="plan-execution-badge plan-execution-badge--pending">⚠️ 托管计划不存在</span>
+              <span v-else-if="task.execution === 'server-owner-mismatch'" class="plan-execution-badge plan-execution-badge--pending">🔒 其他托管账号</span>
+              <span v-else class="plan-execution-badge plan-execution-badge--local">💻 本机前台</span>
+            </div>
             <n-switch
-              v-model:value="task.enabled"
+              :value="task.enabled"
+              :disabled="['server-pending', 'server-missing', 'server-owner-mismatch'].includes(task.execution) || busyServerPlanIds.includes(task.id)"
               @update:value="toggleTaskEnabled(task.id, $event)"
             >
             </n-switch>
@@ -1830,7 +1994,7 @@
             >
               {{
                 task.enabled
-                  ? taskCountdowns[task.id]?.formatted || "计算中..."
+                  ? task.execution === 'server' ? '按北京时间调度' : task.execution === 'server-pending' || task.execution === 'server-missing' ? '需同步确认' : task.execution === 'server-owner-mismatch' ? '请切换托管账号' : taskCountdowns[task.id]?.formatted || "计算中..."
                   : "已禁用"
               }}
             </span>
@@ -1853,9 +2017,10 @@
               type="info"
               secondary
               :loading="executingTaskIds.includes(task.id)"
-              @click="manualExecuteTask(task)"
+              :disabled="['server-pending', 'server-missing', 'server-owner-mismatch'].includes(task.execution) || (task.execution === 'server' && !task.serverJobId)"
+              @click="task.execution === 'server' ? runServerTask(task) : manualExecuteTask(task)"
             >
-              立即执行
+              {{ task.execution === 'server' ? '服务器执行一次' : task.execution === 'server-pending' ? '等待同步' : task.execution === 'server-owner-mismatch' ? '其他托管账号' : '立即执行' }}
             </n-button>
           </div>
         </div>
@@ -1870,12 +2035,13 @@
 
     <!-- Task Modal -->
     <n-modal
+      :class="{ 'workspace-settings-modal': embedded }"
       v-model:show="showTaskModal"
       preset="card"
       :title="editingTask ? '编辑定时任务' : '新增定时任务'"
       style="width: 90%; max-width: 600px"
     >
-      <div class="settings-content">
+      <div class="settings-content" :class="{ 'workspace-settings-content': embedded }">
         <div class="settings-grid">
           <div class="setting-item">
             <label class="setting-label">任务名称</label>
@@ -1917,7 +2083,7 @@
 
               <!-- 未来执行时间 -->
               <div
-                v-if="cronValidation.valid && cronNextRuns.length > 0"
+                v-if="taskForm.execution !== 'server' && cronValidation.valid && cronNextRuns.length > 0"
                 class="cron-next-runs"
               >
                 <h4>未来5次执行时间：</h4>
@@ -1928,6 +2094,18 @@
                 </ul>
               </div>
             </div>
+          </div>
+          <div class="setting-item workspace-server-banner">
+            <div class="workspace-server-badge">
+              <span class="server-badge-icon">☁️</span>
+              <div class="server-badge-text">
+                <strong>云端服务器托管（关机/离线自动执行）</strong>
+                <p>保存后由服务器后台按设定时间独立调度全部所选日常，手机锁屏或关闭应用依然自动执行。</p>
+              </div>
+            </div>
+            <p v-if="taskForm.selectedTokens.some((id) => !tokens.some((token) => token.id === id))" class="workspace-server-hint" style="margin-top: 8px;">
+              服务器角色：{{ editingTask?.serverAccountNames?.join('、') || '此计划选择的角色' }}。使用服务器保存的凭据与日常配置。
+            </p>
           </div>
           <div class="setting-item">
             <div
@@ -2071,9 +2249,7 @@
                       v-for="task in groupedAvailableTasks[group.name]"
                       :key="task.value"
                     >
-                      <n-checkbox :value="task.value">{{
-                        task.label
-                      }}</n-checkbox>
+                      <n-checkbox :value="task.value">{{ task.label }}</n-checkbox>
                     </n-grid-item>
                   </n-grid>
                 </n-tab-pane>
@@ -2091,17 +2267,109 @@
                       v-for="task in groupedAvailableTasks.other"
                       :key="task.value"
                     >
-                      <n-checkbox :value="task.value">{{
-                        task.label
-                      }}</n-checkbox>
+                      <n-checkbox :value="task.value">{{ task.label }}</n-checkbox>
                     </n-grid-item>
                   </n-grid>
                 </n-tab-pane>
               </n-tabs>
             </n-checkbox-group>
           </div>
+          <section v-if="taskForm.execution === 'server'" class="server-plan-task-options" aria-label="服务器计划任务参数">
+            <n-alert type="info" :show-icon="false">
+              本计划会保存自己的参数快照。编辑已有计划时使用服务器保存的参数；密码和兑换码只会加密保存在服务器，重新编辑时留空表示保留原值。
+            </n-alert>
+            <div v-if="taskForm.selectedTokens.length" class="server-plan-formation-list">
+              <h4>角色阵容快照</h4>
+              <p>服务器计划会按每个角色分别保存阵容设置，适用于竞技场、爬塔、营地和日常任务。</p>
+              <div v-for="accountId in taskForm.selectedTokens" :key="`formation-${accountId}`" class="server-plan-formation-row">
+                <strong>{{ tokens.find((token) => token.id === accountId)?.name || accountId }}</strong>
+                <n-select v-model:value="taskForm.dailySettingsByAccount[accountId].arenaFormation" :options="formationOptions" size="small" aria-label="竞技场阵容" />
+                <n-select v-model:value="taskForm.dailySettingsByAccount[accountId].towerFormation" :options="formationOptions" size="small" aria-label="爬塔阵容" />
+                <n-select v-model:value="taskForm.dailySettingsByAccount[accountId].bossFormation" :options="formationOptions" size="small" aria-label="Boss阵容" />
+              </div>
+            </div>
+            <StarChallengeOptions
+              v-if="taskForm.selectedTasks.includes('batchStarChallenge')"
+              v-model="taskForm.taskOptions"
+              class="server-plan-star-options"
+            />
+            <div v-if="taskForm.selectedTasks.some((id) => ['batchOpenBox','batchOpenBoxByPoints'].includes(id))" class="server-plan-option-grid">
+              <div class="setting-item"><label class="setting-label">宝箱类型</label><n-select v-model:value="taskForm.taskOptions.defaultBoxType" :options="boxTypeOptions" /></div>
+              <div class="setting-item" v-if="taskForm.selectedTasks.includes('batchOpenBox')"><label class="setting-label">开箱数量</label><n-input-number v-model:value="taskForm.taskOptions.boxCount" :min="1" :max="100000" /></div>
+              <div class="setting-item" v-if="taskForm.selectedTasks.includes('batchOpenBoxByPoints')"><label class="setting-label">目标宝箱积分</label><n-input-number v-model:value="taskForm.taskOptions.targetBoxPoints" :min="1" :max="1000000" /></div>
+            </div>
+            <div v-if="taskForm.selectedTasks.includes('batchFish') || taskForm.selectedTasks.includes('batchTopUpFish')" class="server-plan-option-grid">
+              <div class="setting-item"><label class="setting-label">鱼竿类型</label><n-select v-model:value="taskForm.taskOptions.defaultFishType" :options="fishTypeOptions" /></div>
+              <div class="setting-item" v-if="taskForm.selectedTasks.includes('batchFish')"><label class="setting-label">钓鱼次数</label><n-input-number v-model:value="taskForm.taskOptions.fishCount" :min="1" :max="100000" /></div>
+            </div>
+            <div v-if="taskForm.selectedTasks.includes('batchRecruit')" class="server-plan-option-grid">
+              <div class="setting-item"><label class="setting-label">招募数量</label><n-input-number v-model:value="taskForm.taskOptions.recruitCount" :min="1" :max="100000" /></div>
+            </div>
+            <div v-if="taskForm.selectedTasks.includes('climbWeirdTower')" class="server-plan-option-grid">
+              <div class="setting-item"><label class="setting-label">怪异塔最大攀爬次数</label><n-input-number v-model:value="taskForm.taskOptions.weirdTowerMaxClimb" :min="1" :max="10000" /></div>
+            </div>
+            <div v-if="taskForm.selectedTasks.includes('batchRedeemCodes')" class="server-plan-option-grid">
+              <div class="setting-item"><label class="setting-label">兑换码（每行一个）</label><n-input v-model:value="taskForm.taskOptions.cdkCodes" type="textarea" :placeholder="taskForm.hasCdkCodes ? '服务器已保存兑换码；留空保留原值' : '请输入兑换码'" :autosize="{ minRows: 3, maxRows: 8 }" autocomplete="off" /></div>
+              <div class="setting-item"><label class="setting-label">兑换码平台</label><n-input v-model:value="taskForm.taskOptions.cdkPlatformType" placeholder="h5" /></div>
+            </div>
+            <div v-if="taskForm.selectedTasks.includes('batchBuyDreamItems')" class="setting-item">
+              <label class="setting-label">梦境商品清单</label>
+              <n-checkbox-group v-model:value="taskForm.taskOptions.dreamPurchaseList" class="server-plan-dream-list">
+                <div v-for="(merchant, merchantId) in merchantConfig" :key="`merchant-${merchantId}`" class="server-plan-merchant">
+                  <strong>{{ merchant.name }}</strong>
+                  <n-checkbox v-for="(item, itemIndex) in merchant.items" :key="`${merchantId}-${itemIndex}`" :value="`${merchantId}-${itemIndex}`">{{ item }}</n-checkbox>
+                </div>
+              </n-checkbox-group>
+            </div>
+            <div v-if="taskForm.selectedTasks.includes('store_syncpurchaseconfig') || taskForm.selectedTasks.includes('store_purchase')" class="setting-item">
+              <label for="plan-black-market-count-input" class="setting-label">采购次数</label>
+              <n-input-number
+                v-model:value="taskForm.taskOptions.blackMarketPurchaseCount"
+                :input-props="{
+                  id: 'plan-black-market-count-input',
+                  'aria-label': '计划黑市采购次数',
+                  'aria-describedby': isBlackMarketPurchaseCountValid(taskForm.taskOptions.blackMarketPurchaseCount) ? 'plan-black-market-count-help' : 'plan-black-market-count-help plan-black-market-count-error',
+                  'aria-invalid': !isBlackMarketPurchaseCountValid(taskForm.taskOptions.blackMarketPurchaseCount),
+                }"
+                :min="1"
+                :max="2147483647"
+                :precision="0"
+                clearable
+                placeholder="留空沿用游戏设置"
+              />
+              <p id="plan-black-market-count-help" class="field-hint">
+                留空沿用游戏已有设置；实际可购次数由游戏限制。
+              </p>
+              <p v-if="!isBlackMarketPurchaseCountValid(taskForm.taskOptions.blackMarketPurchaseCount)" id="plan-black-market-count-error" class="field-hint field-hint--error" role="alert">
+                采购次数必须留空或为 1–2147483647 的整数。
+              </p>
+              <label class="setting-label">黑市采购清单</label>
+              <div v-for="(item, itemIndex) in taskForm.taskOptions.blackMarketPurchaseList" :key="`plan-market-${itemIndex}`" class="server-plan-market-row">
+                <n-select :value="item.itemId" :options="blackMarketItemOptions" placeholder="选择商品" @update:value="(value) => updatePlanMarketItem(itemIndex, value)" />
+                <n-input-number v-model:value="item.discount" :min="1" :max="10" aria-label="黑市折扣" />
+                <n-button quaternary type="error" @click="removePlanMarketItem(itemIndex)">删除</n-button>
+              </div>
+              <div class="server-plan-market-actions"><n-button size="small" @click="addPlanMarketItem">新增商品</n-button><n-button size="small" @click="resetPlanMarketItems">恢复默认</n-button></div>
+            </div>
+            <div v-if="taskForm.selectedTasks.includes('batchLegacyGiftSendEnhanced')" class="server-plan-option-grid">
+              <div class="setting-item"><label class="setting-label">接收角色 ID</label><n-input v-model:value="taskForm.taskOptions.receiverId" placeholder="请输入接收角色ID" /></div>
+              <div class="setting-item"><label class="setting-label">安全密码</label><n-input v-model:value="taskForm.taskOptions.password" type="password" show-password-on="click" :placeholder="taskForm.hasPassword ? '服务器已保存密码；留空保留原值' : '请输入安全密码'" autocomplete="new-password" /></div>
+              <div class="setting-item"><label class="setting-label">赠送数量</label><n-input-number v-model:value="taskForm.taskOptions.giftQuantity" :min="1" :max="9999" :disabled="taskForm.taskOptions.giftAll" /></div>
+              <div class="setting-item"><label class="setting-label">赠送全部可赠残卷（单次最多9999）</label><n-switch v-model:value="taskForm.taskOptions.giftAll" /><p class="field-hint">关闭时只赠送上面填写的数量。</p></div>
+            </div>
+            <div v-if="taskForm.selectedTasks.includes('batchApplyLegion')" class="server-plan-option-grid">
+              <div class="setting-item"><label class="setting-label">目标俱乐部 ID</label><n-input-number v-model:value="taskForm.taskOptions.legionApplyTargetId" :min="1" /></div>
+            </div>
+            <div class="server-plan-option-grid server-plan-delay-grid">
+              <div v-for="delay in serverDelayFields" :key="delay.key" class="setting-item"><label class="setting-label">{{ delay.label }} (ms)</label><n-input-number v-model:value="taskForm.taskOptions[delay.key]" :min="0" :max="60000" /></div>
+            </div>
+          </section>
+          <StarChallengeOptions
+            v-if="taskForm.execution !== 'server' && taskForm.selectedTasks.includes('batchStarChallenge')"
+            v-model="taskForm.taskOptions"
+          />
           <div
-            v-if="taskForm.selectedTasks.includes('batchApplyLegion')"
+            v-if="taskForm.selectedTasks.includes('batchApplyLegion') && taskForm.execution !== 'server'"
             class="setting-item"
           >
             <label class="setting-label">目标俱乐部ID</label>
@@ -2120,19 +2388,20 @@
           <n-button @click="showTaskModal = false" style="margin-right: 12px"
             >取消</n-button
           >
-          <n-button type="primary" @click="saveTask">保存</n-button>
+          <n-button type="primary" :loading="savingTask" :disabled="savingTask" @click="saveTask">保存</n-button>
         </div>
       </div>
     </n-modal>
 
     <!-- Batch Settings Modal -->
     <n-modal
+      :class="{ 'workspace-settings-modal': embedded }"
       v-model:show="showBatchSettingsModal"
       preset="card"
       title="任务设置"
       style="width: 90%; max-width: 700px"
     >
-      <div class="settings-content">
+      <div class="settings-content" :class="{ 'workspace-settings-content': embedded }">
         <n-grid :cols="2" :x-gap="24">
           <!-- 左列：批量操作设置 -->
           <n-grid-item>
@@ -2545,6 +2814,10 @@
             </div>
           </n-grid-item>
         </n-grid>
+        <StarChallengeOptions
+          :model-value="batchSettings"
+          @update:model-value="(value) => Object.assign(batchSettings, value)"
+        />
         <div class="modal-actions" style="margin-top: 20px; text-align: right">
           <n-button
             @click="showBatchSettingsModal = false"
@@ -2560,12 +2833,13 @@
 
     <!-- War Guess Modal -->
     <n-modal
+      :class="{ 'workspace-settings-modal': embedded }"
       v-model:show="showWarGuessModal"
       preset="card"
       title="月赛助威"
       style="width: 90%; max-width: 800px"
     >
-      <div class="settings-content">
+      <div class="settings-content" :class="{ 'workspace-settings-content': embedded }">
         <div class="settings-grid" style="display: block">
           <div
             style="
@@ -2620,12 +2894,13 @@
 
     <!-- Batch Apply Legion Modal -->
     <n-modal
+      :class="{ 'workspace-settings-modal': embedded }"
       v-model:show="showApplyLegionModal"
       preset="card"
       title="批量申请俱乐部"
       style="width: 90%; max-width: 720px"
     >
-      <div class="settings-content">
+      <div class="settings-content" :class="{ 'workspace-settings-content': embedded }">
         <div class="settings-grid" style="display: block">
           <div
             style="
@@ -2746,12 +3021,13 @@
 
     <!-- Token Group Management Modal -->
     <n-modal
+      :class="{ 'workspace-settings-modal': embedded }"
       v-model:show="showGroupManageModal"
       preset="card"
       title="分组管理"
       style="width: 90%; max-width: 800px"
     >
-      <div class="settings-content">
+      <div class="settings-content" :class="{ 'workspace-settings-content': embedded }">
         <!-- 创建新分组 -->
         <n-divider title-placement="left" style="margin: 0 0 16px 0">
           创建新分组
@@ -3039,12 +3315,56 @@
         </div>
       </div>
     </n-modal>
+
+    <!-- 移动端实时日志抽屉 Mobile Log Drawer -->
+    <n-drawer
+      v-model:show="showLogDrawer"
+      placement="bottom"
+      height="76vh"
+      style="border-radius: 20px 20px 0 0; max-height: 80vh;"
+    >
+      <n-drawer-content :native-scrollbar="false" closable>
+        <template #header>
+          <div class="drawer-header-custom">
+            <span class="drawer-title">
+              {{ currentRunningTokenName ? `执行中: ${currentRunningTokenName}` : "批量任务日志" }}
+              <span class="drawer-count">({{ logs.length }})</span>
+            </span>
+            <div class="drawer-actions">
+              <n-button size="tiny" quaternary @click="clearLogs">清空</n-button>
+              <n-button size="tiny" quaternary @click="copyLogs">复制</n-button>
+            </div>
+          </div>
+        </template>
+        <div style="margin-bottom: 12px;">
+          <n-progress
+            type="line"
+            :percentage="currentProgress"
+            indicator-placement="inside"
+            processing
+          />
+        </div>
+        <div class="log-container drawer-log-container" ref="drawerLogContainer">
+          <div
+            v-for="(log, logIndex) in filteredLogs"
+            :key="logIndex"
+            class="log-item"
+            :class="log.type"
+          >
+            <span class="time">{{ log.time }}</span>
+            <span class="message">{{ log.message }}</span>
+          </div>
+          <div v-if="filteredLogs.length === 0" style="text-align: center; color: #86909c; padding: 24px;">
+            暂无日志记录
+          </div>
+        </div>
+      </n-drawer-content>
+    </n-drawer>
   </div>
 </template>
 
 <script setup>
 import { Settings } from "@vicons/ionicons5";
-
 import { useMessage } from "naive-ui";
 // Import required dependencies
 import {
@@ -3055,8 +3375,13 @@ import {
   onMounted,
   reactive,
   ref,
+  toRaw,
   watch,
 } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import StarChallengeOptions from "@/components/Nightmare/StarChallengeOptions.vue";
+import { useWorkspaceNavigation } from "@/composables/useWorkspaceNavigation";
+import useIndexedDB from "@/hooks/useIndexedDB";
 import { $emit } from "@/stores/events/index.ts";
 import { gameTokens, tokenGroups, useTokenStore } from "@/stores/tokenStore";
 // Import batch task modules
@@ -3079,6 +3404,7 @@ import {
   createTasksHangUp,
   createTasksItem,
   createTasksLegacy,
+  createTasksStarChallenge,
   createTasksStore,
   createTasksTower,
   createTasksXuanwuBlessing,
@@ -3099,13 +3425,45 @@ import {
 } from "@/utils/batch/blackMarketConfig";
 import { DailyTaskRunner } from "@/utils/dailyTaskRunner";
 import { goldItemsConfig, merchantConfig } from "@/utils/dreamConstants";
-
 import { isSameGameValue } from "@/utils/gameValue.js";
+
+import {
+  buildHostedBatchPlanPayload,
+  canRunLocalBatchTask,
+  hostedJobToLocalPlan,
+  hostedRequest,
+  isOwnedBatchPlan,
+  pickDailyTaskSettings,
+  selectAllBatchTaskIds,
+  toLocalBatchDraft,
+} from "@/utils/serverBatchPlans.js";
+import { DEFAULT_STAR_CHALLENGE_OPTIONS } from "@/utils/starChallenge.js";
 
 import { DEFAULT_WEIRD_TOWER_MAX_CLIMB } from "@/utils/towerClimbLimit.js";
 
+const props = defineProps({ embedded: Boolean });
+const route = useRoute();
+const router = useRouter();
+const workspaceNavigation = useWorkspaceNavigation(router);
+const rightLogColumnRef = ref(null);
+const showLogDrawer = ref(false);
+const drawerLogContainer = ref(null);
+
+function scrollToBatchLogs() {
+  if (typeof window !== "undefined" && window.innerWidth <= 860) {
+    showLogDrawer.value = true;
+  } else {
+    rightLogColumnRef.value?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  }
+}
+
+function openTenPalaceTeam() {
+  workspaceNavigation.push({ path: "/admin/game-features", query: { feature: "tenPalace" } });
+}
+
 // Initialize token store, message service, and task runner
 const tokenStore = useTokenStore();
+const { getArrayBuffer } = useIndexedDB();
 const message = useMessage();
 const weirdTowerMaxClimb = ref(DEFAULT_WEIRD_TOWER_MAX_CLIMB);
 
@@ -3548,9 +3906,12 @@ const handleBatchApplyLegion = async () => {
 };
 
 // Settings Modal State
+const showBatchToolsModal = ref(false);
 const showSettingsModal = ref(false);
+const savingSettings = ref(false);
 const currentSettingsTokenId = ref(null);
 const currentSettingsTokenName = ref("");
+const settingsBeforeEdit = ref(null);
 const currentSettings = reactive({
   arenaFormation: 1,
   towerFormation: 1,
@@ -3563,6 +3924,8 @@ const currentSettings = reactive({
   claimHangUp: true,
   claimEmail: true,
   blackMarketPurchase: true,
+  buyGold: true,
+  sendFriendGold: true,
 });
 
 // Task Template State
@@ -3587,6 +3950,8 @@ const currentTemplate = reactive({
   claimHangUp: true,
   claimEmail: true,
   blackMarketPurchase: true,
+  buyGold: true,
+  sendFriendGold: true,
 });
 
 // Account Template References
@@ -3647,6 +4012,9 @@ for (const merchantId in goldItemsConfig) {
 const createDefaultBlackMarketPurchaseList = () =>
   defaultBlackMarketPurchaseList.map((item) => ({ ...item }));
 
+const isBlackMarketPurchaseCountValid = (value) => value === null || value === undefined ||
+  (typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 2147483647);
+
 const blackMarketItemOptions = blackMarketItemCatalog.map((item) => ({
   label: `${item.label} (${item.itemId})`,
   value: item.itemId,
@@ -3655,11 +4023,13 @@ const blackMarketItemOptions = blackMarketItemCatalog.map((item) => ({
 const batchSettings = reactive({
   dreamPurchaseList: defaultDreamPurchaseList,
   blackMarketPurchaseList: createDefaultBlackMarketPurchaseList(),
+  blackMarketPurchaseCount: null,
   boxCount: 100,
   fishCount: 100,
   recruitCount: 100,
   cdkCodes: "",
   cdkPlatformType: "h5",
+  ...DEFAULT_STAR_CHALLENGE_OPTIONS,
   defaultBoxType: 2001,
   defaultFishType: 1,
   targetBoxPoints: 1000,
@@ -3693,6 +4063,10 @@ const loadBatchSettings = () => {
     }
     batchSettings.cdkCodes = batchSettings.cdkCodes || "";
     batchSettings.cdkPlatformType = batchSettings.cdkPlatformType || "h5";
+    for (const [key, value] of Object.entries(DEFAULT_STAR_CHALLENGE_OPTIONS)) {
+      if (batchSettings[key] === undefined) batchSettings[key] = structuredClone(value);
+    }
+    if (batchSettings.blackMarketPurchaseCount === undefined) batchSettings.blackMarketPurchaseCount = null;
     batchSettings.blackMarketPurchaseList = normalizeBlackMarketPurchaseList(
       batchSettings.blackMarketPurchaseList?.length
         ? batchSettings.blackMarketPurchaseList
@@ -3746,6 +4120,9 @@ const avatarLoadError = ref(false);
 
 // Scheduled Tasks State Management
 const scheduledTasks = ref([]); // List of all scheduled tasks
+const busyServerPlanIds = ref([]);
+const savingTask = ref(false);
+const hostedOwnerId = ref(null);
 const showTaskModal = ref(false); // Control the visibility of the add/edit task modal
 const showTasksModal = ref(false); // Control the visibility of the tasks list modal
 const showRedeemCodeModal = ref(false); // Control the visibility of the redeem code modal
@@ -3759,6 +4136,11 @@ const taskForm = reactive({
   selectedTasks: [], // Selected task function names
   legionApplyTargetId: null, // Target legion for batchApplyLegion
   enabled: true, // Whether the task is enabled
+  execution: "server",
+  taskOptions: {},
+  dailySettingsByAccount: {},
+  hasPassword: false,
+  hasCdkCodes: false,
 });
 
 // 任务分组定义
@@ -3768,22 +4150,29 @@ const taskGroupDefinitions = [
     label: "日常",
     tasks: [
       "startBatch",
+      "batchStudy",
+      "batchCampChallenge",
+      "batchCampChallengePet",
+      "batchCampClaimTasks",
+      "batchStarChallenge",
+      "batchApplyLegion",
+      "batchXuanwuBlessing",
+    ],
+  },
+  {
+    name: "dailySub",
+    label: "单项",
+    tasks: [
       "claimHangUpRewards",
       "batchAddHangUpTime",
       "resetBottles",
       "batchlingguanzi",
       "batchclubsign",
-      "batchApplyLegion",
-      "batchStudy",
       "batcharenafight",
-      "batchCampChallenge",
-      "batchCampChallengePet",
-      "batchCampClaimTasks",
       "store_syncpurchaseconfig",
       "store_purchase",
       "collection_claimfreereward",
       "batchGenieSweep",
-      "batchXuanwuBlessing",
     ],
   },
   {
@@ -3867,6 +4256,7 @@ const executingTaskIds = ref([]);
 
 // Manual execute task
 const manualExecuteTask = async (task) => {
+  if (!canRunLocalBatchTask(task)) return;
   if (executingTaskIds.value.includes(task.id)) return;
 
   // Reset stop flag if not running, to allow manual execution
@@ -3914,10 +4304,29 @@ const saveScheduledTasks = () => {
     const dataToSave = JSON.stringify(scheduledTasks.value);
 
     localStorage.setItem("scheduledTasks", dataToSave);
-    // Verify save was successful
-    localStorage.getItem("scheduledTasks");
+    // Verify save was successful before a hosted write can rely on this state.
+    if (localStorage.getItem("scheduledTasks") !== dataToSave)
+      throw new Error("Scheduled tasks were not persisted");
+    return true;
   } catch (error) {
     console.error("Failed to save scheduled tasks:", error);
+    return false;
+  }
+};
+
+// Scheduled plans may come directly from a Vue ref. `structuredClone` rejects
+// reactive Proxies, so unwrap before taking an editable snapshot. Keep the
+// JSON fallback for browsers that cannot clone a value carried by an older
+// imported local plan.
+const clonePlanValue = (value, fallback = {}) => {
+  try {
+    return structuredClone(toRaw(value));
+  } catch (_error) {
+    try {
+      return JSON.parse(JSON.stringify(toRaw(value)));
+    } catch (_fallbackError) {
+      return fallback;
+    }
   }
 };
 
@@ -3933,6 +4342,11 @@ const openTaskModal = () => {
     selectedTasks: [],
     legionApplyTargetId: null,
     enabled: true,
+    execution: "server",
+    taskOptions: createTaskOptionsFromGlobals(),
+    dailySettingsByAccount: {},
+    hasPassword: false,
+    hasCdkCodes: false,
   });
   taskScheduleSelectedGroupIds.value = [];
   showTaskModal.value = true;
@@ -3941,7 +4355,7 @@ const openTaskModal = () => {
 // Edit existing task
 const editTask = (task) => {
   editingTask.value = task;
-  const taskData = { ...task };
+  const taskData = clonePlanValue(task);
   if (
     task.runType === "daily" &&
     task.runTime &&
@@ -3966,9 +4380,22 @@ const editTask = (task) => {
     selectedTasks: [],
     legionApplyTargetId: null,
     enabled: true,
+    execution: "server",
+    taskOptions: createTaskOptionsFromGlobals(),
+    dailySettingsByAccount: {},
+    hasPassword: false,
+    hasCdkCodes: false,
   });
-  Object.assign(taskForm, taskData);
+  const planOptions = createTaskOptionsFromPlan(taskData);
+  Object.assign(taskForm, taskData, {
+    execution: "server",
+    taskOptions: planOptions.options,
+    dailySettingsByAccount: clonePlanValue(taskData.dailySettingsByAccount || {}),
+    hasPassword: planOptions.hasPassword,
+    hasCdkCodes: planOptions.hasCdkCodes,
+  });
   taskScheduleSelectedGroupIds.value = [];
+  showTasksModal.value = false;
   showTaskModal.value = true;
 };
 
@@ -4005,125 +4432,328 @@ const parseCronExpression = (expression) => {
 // 注: calculateNextRuns 已从 @/utils/batch 导入
 
 // Save task (create or update)
-const saveTask = () => {
-  if (!taskForm.name) {
-    message.warning("请输入任务名称");
-    return;
-  }
-
-  if (taskForm.runType === "daily" && !taskForm.runTime) {
-    message.warning("请选择运行时间");
-    return;
-  }
-
+const saveTaskInternal = async () => {
+  if (!taskForm.name) return message.warning("请输入任务名称");
+  if (taskForm.runType === "daily" && !taskForm.runTime)
+    return message.warning("请选择运行时间");
   if (taskForm.runType === "cron") {
-    if (!taskForm.cronExpression) {
-      message.warning("请输入Cron表达式");
-      return;
-    }
-
-    // Validate cron expression
+    if (!taskForm.cronExpression) return message.warning("请输入Cron表达式");
     const validation = validateCronExpression(taskForm.cronExpression);
-    if (!validation.valid) {
-      message.warning(validation.message);
-      return;
-    }
+    if (!validation.valid) return message.warning(validation.message);
   }
+  if (!taskForm.selectedTokens.length) return message.warning("请选择至少一个账号");
+  if (!taskForm.selectedTasks.length) return message.warning("请选择至少一个任务");
+  const applyLegionTargetId = taskForm.execution === "server"
+    ? taskForm.taskOptions.legionApplyTargetId
+    : taskForm.legionApplyTargetId;
+  if (taskForm.selectedTasks.includes("batchApplyLegion") && !Number(applyLegionTargetId))
+    return message.warning("请为批量申请俱乐部任务填写目标俱乐部ID");
 
-  if (taskForm.selectedTokens.length === 0) {
-    message.warning("请选择至少一个账号");
-    return;
-  }
-
-  if (taskForm.selectedTasks.length === 0) {
-    message.warning("请选择至少一个任务");
-    return;
-  }
-
-  if (
-    taskForm.selectedTasks.includes("batchApplyLegion") &&
-    !Number(taskForm.legionApplyTargetId)
-  ) {
-    message.warning("请为批量申请俱乐部任务填写目标俱乐部ID");
-    return;
-  }
-
-  // Format runTime as string for storage
-  let formattedRunTime = null;
-  if (taskForm.runType === "daily" && taskForm.runTime) {
-    const time = new Date(taskForm.runTime);
-    formattedRunTime = time.toLocaleTimeString("zh-CN", {
-      hour12: false,
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
+  const runTime = taskForm.runType === "daily" && taskForm.runTime
+    ? new Date(taskForm.runTime).toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" })
+    : null;
   const taskData = {
-    id: editingTask.value?.id || `task_${Date.now()}`,
+    id: editingTask.value?.id || `task_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     name: taskForm.name,
     runType: taskForm.runType,
-    runTime: formattedRunTime,
+    runTime,
     cronExpression: taskForm.runType === "cron" ? taskForm.cronExpression : "",
     selectedTokens: [...taskForm.selectedTokens],
     selectedTasks: [...taskForm.selectedTasks],
-    legionApplyTargetId: Number(taskForm.legionApplyTargetId || 0) || null,
+    legionApplyTargetId: Number(taskForm.taskOptions.legionApplyTargetId || taskForm.legionApplyTargetId || 0) || null,
     enabled: taskForm.enabled,
+    execution: "server",
   };
+  const secretPasswordEntered = Boolean(taskForm.taskOptions.password);
+  const secretCodesEntered = Boolean(taskForm.taskOptions.cdkCodes);
+  const taskOptionSnapshot = { ...taskForm.taskOptions, legionApplyTargetId: taskData.legionApplyTargetId };
+  delete taskOptionSnapshot.password;
+  delete taskOptionSnapshot.cdkCodes;
+  taskData.taskOptions = taskData.execution === "server" || taskData.selectedTasks.includes("batchStarChallenge")
+    ? taskOptionSnapshot
+    : undefined;
+  taskData.dailySettingsByAccount = taskData.execution === "server"
+    ? Object.fromEntries(taskData.selectedTokens.map((id) => [id, taskForm.dailySettingsByAccount[id] || loadSettings(id) || defaultDailyTaskSettings()]))
+    : undefined;
+  taskData.hasPassword = taskData.execution === "server" ? secretPasswordEntered || Boolean(editingTask.value?.hasPassword) || taskForm.hasPassword : undefined;
+  taskData.hasCdkCodes = taskData.execution === "server" ? secretCodesEntered || Boolean(editingTask.value?.hasCdkCodes) || taskForm.hasCdkCodes : undefined;
+  const oldTask = editingTask.value
+    ? scheduledTasks.value.find((task) => task.id === editingTask.value.id)
+    : null;
+  const index = oldTask ? scheduledTasks.value.findIndex((task) => task.id === oldTask.id) : -1;
+  const wasServerPlan = Boolean(oldTask && ["server", "server-pending", "server-missing"].includes(oldTask.execution));
+  if (oldTask?.execution === "server-owner-mismatch") {
+    message.warning("此计划属于另一个托管账号，请先切换回原账号");
+    return;
+  }
 
-  const isNew = !editingTask.value;
-
-  if (editingTask.value) {
-    // Update existing task
-    const index = scheduledTasks.value.findIndex(
-      (t) => t.id === editingTask.value.id,
-    );
-    if (index !== -1) {
-      scheduledTasks.value[index] = taskData;
+  if (taskData.execution === "server") {
+    let payload;
+    let ownerId;
+    const remotePlanId = oldTask?.serverPlanId || taskData.id;
+    try {
+      const localSettings = Object.fromEntries(
+        taskData.selectedTokens.map((id) => [
+          id,
+          taskForm.dailySettingsByAccount[id] || loadSettings(id) || defaultDailyTaskSettings(),
+        ]),
+      );
+      payload = await buildHostedBatchPlanPayload({
+        task: taskData,
+        tokens: tokens.value,
+        dailySettingsByAccount: localSettings,
+        delaySettings: Object.fromEntries(serverDelayFields.map(({ key }) => [key, taskForm.taskOptions[key]])),
+        taskOptions: taskForm.taskOptions,
+        getBin: getArrayBuffer,
+      });
+      const hostedState = await hostedRequest("/batch-plans");
+      ownerId = hostedState.userId;
+      if (oldTask?.serverOwnerId && oldTask.serverOwnerId !== ownerId)
+        throw new Error("此计划属于另一个托管账号，请切换回原账号后再编辑或切换执行方式");
+    } catch (error) {
+      if (error.status === 401) workspaceNavigation.push("/server");
+      message.error(`托管计划尚未提交：${error.message}`);
+      return;
     }
-  } else {
-    // Add new task
-    scheduledTasks.value.push(taskData);
+    const pending = {
+      ...(oldTask || {}),
+      ...taskData,
+      execution: "server-pending",
+      syncStatus: "unknown",
+      serverPlanId: remotePlanId,
+      serverOwnerId: ownerId,
+    };
+    if (oldTask) scheduledTasks.value[index] = pending;
+    else scheduledTasks.value.push(pending);
+    if (!saveScheduledTasks()) {
+      if (oldTask) scheduledTasks.value[index] = oldTask;
+      else scheduledTasks.value = scheduledTasks.value.filter((task) => task.id !== taskData.id);
+      message.error("本机无法保存待同步状态，托管请求未发送；请检查浏览器本地存储空间");
+      return;
+    }
+    // Reuse the durable pending ID if the server commits but its response is lost.
+    editingTask.value = pending;
+    try {
+      const { job } = await hostedRequest(`/batch-plans/${encodeURIComponent(remotePlanId)}`, {
+        method: "PUT",
+        body: payload,
+      });
+      const saved = {
+        ...taskData,
+        execution: "server",
+        syncStatus: "synced",
+        serverPlanId: job.sourcePlanId,
+        serverOwnerId: job.ownerId,
+        serverJobId: job.id,
+        taskOptions: job.localPlan?.taskOptions || taskData.taskOptions,
+        dailySettingsByAccount: job.localPlan?.dailySettingsByAccount || taskData.dailySettingsByAccount,
+        hasPassword: Boolean(job.localPlan?.hasPassword),
+        hasCdkCodes: Boolean(job.localPlan?.hasCdkCodes),
+      };
+      if (index >= 0) scheduledTasks.value[index] = saved;
+      else {
+        const pendingIndex = scheduledTasks.value.findIndex((task) => task.id === taskData.id);
+        if (pendingIndex >= 0) scheduledTasks.value[pendingIndex] = saved;
+      }
+      saveScheduledTasks();
+      addTaskSaveLog(saved, !oldTask, addLog);
+      showTaskModal.value = false;
+      message.success("已保存到托管服务器，退出 App 后仍按计划执行");
+      await reconcileHostedBatchPlans();
+      return;
+    } catch (error) {
+      const definitelyRejected = Number.isInteger(error.status) && error.status >= 400 && error.status < 500;
+      if (definitelyRejected) {
+        if (oldTask) scheduledTasks.value[index] = oldTask;
+        else {
+          scheduledTasks.value = scheduledTasks.value.filter((task) => task.id !== taskData.id);
+          if (editingTask.value?.id === taskData.id) editingTask.value = null;
+        }
+        saveScheduledTasks();
+      }
+      if (error.status === 401) workspaceNavigation.push("/server");
+      message.error(definitelyRejected
+        ? `托管计划未保存：${error.message}`
+        : `服务器暂未确认是否保存成功，本机计划已暂停；请保持此计划并重试同步：${error.message}`);
+      return;
+    }
   }
 
+  if (wasServerPlan) {
+    try {
+      const hostedState = await hostedRequest("/batch-plans");
+      if (oldTask.serverOwnerId && oldTask.serverOwnerId !== hostedState.userId)
+        throw new Error("此计划属于另一个托管账号，请切换回原账号");
+      await hostedRequest(`/batch-plans/${encodeURIComponent(oldTask.serverPlanId || oldTask.id)}`, { method: "DELETE" });
+    } catch (error) {
+      message.error(`服务器尚未确认删除托管计划，本机计划未启用：${error.message}`);
+      return;
+    }
+  }
+  delete taskData.serverJobId;
+  delete taskData.syncStatus;
+  if (index >= 0) scheduledTasks.value[index] = taskData;
+  else scheduledTasks.value.push(taskData);
   saveScheduledTasks();
-
-  // Add log entry for task save
-  addTaskSaveLog(taskData, isNew, addLog);
-
+  addTaskSaveLog(taskData, !oldTask, addLog);
   showTaskModal.value = false;
-  message.success("定时任务已保存");
+  message.success(wasServerPlan ? "托管计划已删除，已切换成本机计划" : "定时任务已保存");
 };
 
-// Delete task
-const deleteTask = (taskId) => {
-  const task = scheduledTasks.value.find((t) => t.id === taskId);
-  if (task) {
-    scheduledTasks.value = scheduledTasks.value.filter((t) => t.id !== taskId);
-    saveScheduledTasks();
-    addLog({
-      time: new Date().toLocaleTimeString(),
-      message: `=== 定时任务 ${task.name} 已删除 ===`,
-      type: "info",
-    });
-    message.success("定时任务已删除");
+const saveTask = async () => {
+  if (savingTask.value) return;
+  savingTask.value = true;
+  try {
+    return await saveTaskInternal();
+  } finally {
+    savingTask.value = false;
   }
 };
 
-// Toggle task enabled state
-const toggleTaskEnabled = (taskId, enabled) => {
-  const task = scheduledTasks.value.find((t) => t.id === taskId);
-  if (task) {
-    task.enabled = enabled;
+// Delete a hosted plan before removing its local shadow. Repeating this DELETE is safe.
+const deleteTask = async (taskId) => {
+  const task = scheduledTasks.value.find((item) => item.id === taskId);
+  if (!task) return;
+  if (task.execution === "server-owner-mismatch") {
+    scheduledTasks.value = scheduledTasks.value.filter((item) => item.id !== taskId);
     saveScheduledTasks();
-    message.success(`定时任务已${enabled ? "启用" : "禁用"}`);
-    addLog({
-      time: new Date().toLocaleTimeString(),
-      message: `=== 定时任务 ${task.name} 已${enabled ? "启用" : "禁用"} ===`,
-      type: "info",
-    });
+    message.info("已移除此设备上的关联；原托管账号中的计划未修改");
+    return;
+  }
+  if (["server", "server-pending", "server-missing"].includes(task.execution)) {
+    busyServerPlanIds.value.push(taskId);
+    try {
+      const hostedState = await hostedRequest("/batch-plans");
+      if (task.serverOwnerId && task.serverOwnerId !== hostedState.userId)
+        throw new Error("计划属于另一个托管账号");
+      await hostedRequest(`/batch-plans/${encodeURIComponent(task.serverPlanId || task.id)}`, { method: "DELETE" });
+    } catch (error) {
+      message.error(`托管计划删除未确认，本地记录已保留：${error.message}`);
+      busyServerPlanIds.value = busyServerPlanIds.value.filter((id) => id !== taskId);
+      return;
+    }
+    busyServerPlanIds.value = busyServerPlanIds.value.filter((id) => id !== taskId);
+  }
+  scheduledTasks.value = scheduledTasks.value.filter((item) => item.id !== taskId);
+  saveScheduledTasks();
+  addLog({ time: new Date().toLocaleTimeString(), message: `=== 定时任务 ${task.name} 已删除 ===`, type: "info" });
+  message.success("定时任务已删除");
+};
+
+async function ensureCurrentPlanOwner(task) {
+  const hostedState = await hostedRequest("/batch-plans");
+  hostedOwnerId.value = hostedState.userId;
+  if (!isOwnedBatchPlan(task, hostedState.userId)) {
+    await reconcileHostedBatchPlans();
+    throw new Error("计划属于另一个托管账号，请切换回原账号");
+  }
+  return hostedState;
+}
+
+const toggleTaskEnabled = async (taskId, enabled) => {
+  const task = scheduledTasks.value.find((item) => item.id === taskId);
+  if (!task || task.enabled === enabled) return;
+  if (task.execution === "server-owner-mismatch") {
+    message.warning("此计划属于另一个托管账号，请切换回原账号");
+    return;
+  }
+  if (["server", "server-pending", "server-missing"].includes(task.execution)) {
+    if (!task.serverJobId || !isOwnedBatchPlan(task, hostedOwnerId.value)) {
+      message.warning("尚未确认服务器计划，请先编辑并重新同步");
+      return;
+    }
+    busyServerPlanIds.value.push(taskId);
+    try {
+      await ensureCurrentPlanOwner(task);
+      await hostedRequest(`/batch-plans/${encodeURIComponent(task.serverPlanId || task.id)}`, {
+        method: "PATCH",
+        body: { enabled },
+      });
+      task.enabled = enabled;
+      saveScheduledTasks();
+      message.success(`服务器计划已${enabled ? "启用" : "停用"}`);
+    } catch (error) {
+      message.error(`服务器未确认计划状态，本地显示保持不变：${error.message}`);
+    } finally {
+      busyServerPlanIds.value = busyServerPlanIds.value.filter((id) => id !== taskId);
+    }
+    return;
+  }
+  task.enabled = enabled;
+  saveScheduledTasks();
+  message.success(`定时任务已${enabled ? "启用" : "禁用"}`);
+  addLog({ time: new Date().toLocaleTimeString(), message: `=== 定时任务 ${task.name} 已${enabled ? "启用" : "禁用"} ===`, type: "info" });
+};
+
+const runServerTask = async (task) => {
+  if (!isOwnedBatchPlan(task, hostedOwnerId.value)) {
+    message.warning("请先登录计划所属的托管账号");
+    workspaceNavigation.push("/server");
+    return;
+  }
+  if (!task.serverJobId || busyServerPlanIds.value.includes(task.id)) return;
+  busyServerPlanIds.value.push(task.id);
+  try {
+    const result = await hostedRequest(`/jobs/${encodeURIComponent(task.serverJobId)}/run`, { method: "POST", body: {} });
+    message.success(`已加入服务器队列（${result.count} 个账号）`);
+  } catch (error) {
+    message.error(`服务器执行请求未确认：${error.message}`);
+  } finally {
+    busyServerPlanIds.value = busyServerPlanIds.value.filter((id) => id !== task.id);
   }
 };
+
+async function reconcileHostedBatchPlans() {
+  try {
+    const response = await hostedRequest("/batch-plans");
+    hostedOwnerId.value = response.userId;
+    const remoteById = new Map(response.plans.map(({ job }) => [job.sourcePlanId, job]));
+    for (const task of scheduledTasks.value) {
+      if (["server", "server-pending", "server-missing"].includes(task.execution) &&
+          task.serverOwnerId && task.serverOwnerId !== response.userId) {
+        task.execution = "server-owner-mismatch";
+        task.syncStatus = "owner-mismatch";
+        delete task.serverJobId;
+        continue;
+      }
+      const remote = task.serverPlanId ? remoteById.get(task.serverPlanId) : remoteById.get(task.id);
+      if (remote) Object.assign(task, hostedJobToLocalPlan(remote, response.userId, task.id));
+      else if (task.execution === "server" ||
+               (task.execution === "server-owner-mismatch" && task.serverOwnerId === response.userId)) {
+        task.execution = "server-missing";
+        task.syncStatus = "missing";
+        delete task.serverJobId;
+      }
+    }
+    for (const [sourceId, job] of remoteById) {
+      const existing = scheduledTasks.value.find((task) =>
+        task.execution === "server" && task.serverOwnerId === response.userId &&
+        task.serverPlanId === sourceId,
+      );
+      if (existing) continue;
+      const idConflict = scheduledTasks.value.some((task) => task.id === sourceId);
+      const localId = idConflict ? `${sourceId}_hosted_${response.userId.slice(0, 8)}` : sourceId;
+      scheduledTasks.value.push(hostedJobToLocalPlan(job, response.userId, localId));
+    }
+    saveScheduledTasks();
+  } catch (error) {
+    if (error.status === 401) {
+      hostedOwnerId.value = null;
+      let changed = false;
+      for (const task of scheduledTasks.value) {
+        if (task.execution === "server") {
+          task.syncStatus = "login-required";
+          changed = true;
+        }
+      }
+      if (changed) saveScheduledTasks();
+    }
+  }
+}
+
+function localTaskDraft(task) {
+  return toLocalBatchDraft(task);
+}
 
 // 注: addTaskSaveLog 已从 @/utils/batch 导入，调用时需传入 addLog
 
@@ -4148,7 +4778,7 @@ const deselectAllTokens = () => {
 
 // Select all tasks
 const selectAllTasks = () => {
-  taskForm.selectedTasks = availableTasks.map((task) => task.value);
+  taskForm.selectedTasks = selectAllBatchTaskIds(availableTasks, taskForm.execution);
 };
 
 // Deselect all tasks
@@ -4169,7 +4799,7 @@ const exportConfig = () => {
     // Filter scheduled tasks: remove invalid token IDs from selectedTokens
     const filteredScheduledTasks = scheduledTasks.value
       .map((task) => ({
-        ...task,
+        ...localTaskDraft(task),
         selectedTokens:
           task.selectedTokens?.filter((tokenId) =>
             validTokenIds.has(tokenId),
@@ -4217,6 +4847,7 @@ const exportConfig = () => {
         defaultBoxType: batchSettings.defaultBoxType,
         defaultFishType: batchSettings.defaultFishType,
         blackMarketPurchaseList: batchSettings.blackMarketPurchaseList,
+        blackMarketPurchaseCount: batchSettings.blackMarketPurchaseCount,
         commandDelay: batchSettings.commandDelay,
         taskDelay: batchSettings.taskDelay,
         actionDelay: batchSettings.actionDelay,
@@ -4308,7 +4939,7 @@ const importConfig = async ({ file }) => {
             // Check if task already exists
             const exists = scheduledTasks.value.some((t) => t.id === task.id);
             if (!exists && task.id) {
-              scheduledTasks.value.push(task);
+              scheduledTasks.value.push(localTaskDraft(task));
               importedTasks++;
             }
           });
@@ -4318,6 +4949,7 @@ const importConfig = async ({ file }) => {
         // Import batch settings if provided
         if (importData.batchSettings) {
           Object.assign(batchSettings, importData.batchSettings);
+          if (importData.batchSettings.blackMarketPurchaseCount === undefined) batchSettings.blackMarketPurchaseCount = null;
           batchSettings.blackMarketPurchaseList =
             normalizeBlackMarketPurchaseList(
               batchSettings.blackMarketPurchaseList?.length
@@ -4369,6 +5001,11 @@ const updateCountdowns = () => {
   const now = Date.now();
 
   scheduledTasks.value.forEach((task) => {
+    if (task.execution && task.execution !== "local") {
+      delete nextExecutionTimes.value[task.id];
+      delete taskCountdowns.value[task.id];
+      return;
+    }
     if (!task.enabled) {
       // Clear countdown for disabled tasks
       delete taskCountdowns.value[task.id];
@@ -4395,7 +5032,7 @@ const updateCountdowns = () => {
 };
 
 // 计算最短倒计时任务
-const shortestCountdownTask = computed(() => {
+const _shortestCountdownTask = computed(() => {
   if (scheduledTasks.value.length === 0) return null;
 
   let shortestTask = null;
@@ -4403,7 +5040,7 @@ const shortestCountdownTask = computed(() => {
 
   // 遍历所有任务，找到倒计时最短的任务
   scheduledTasks.value.forEach((task) => {
-    if (!task.enabled) return;
+    if (!task.enabled || !canRunLocalBatchTask(task)) return;
 
     const countdown = taskCountdowns.value[task.id];
     if (countdown && countdown.remainingTime < shortestTime) {
@@ -4534,7 +5171,9 @@ const startScheduler = () => {
       });
 
       // Don't skip all tasks if isRunning is true, just skip individual task execution if already running
-      const tasksToRun = scheduledTasks.value.filter((task) => task.enabled);
+      const tasksToRun = scheduledTasks.value.filter(
+        (task) => task.enabled && canRunLocalBatchTask(task),
+      );
 
       if (tasksToRun.length === 0) {
         return;
@@ -4617,15 +5256,51 @@ const handleTokenRefreshWaiting = (data) => {
   });
 };
 
+// Route state survives the initial async component mount; a transient event
+// emitted by the hosted page can arrive before the batch editor is mounted.
+const openRequestedPlanEditor = async () => {
+  const request = route.query.batchPlanEditor;
+  if (typeof request !== "string" || !request) return;
+  if (request === "new") openTaskModal();
+  else {
+    const target = scheduledTasks.value.find((task) => task.serverPlanId === request || task.id === request);
+    if (target) editTask(target);
+    else message.warning("未找到对应的批量计划；旧版独立任务可继续运行，也可新建托管日常计划");
+  }
+  const query = { ...route.query };
+  delete query.batchPlanEditor;
+  await router.replace({ query });
+};
+watch(() => route.query.batchPlanEditor, (request) => {
+  if (typeof request === "string" && request)
+    void reconcileHostedBatchPlans().then(openRequestedPlanEditor);
+});
+
 // Debug: Log initial state when component mounts
 onMounted(() => {
-  // Start the task scheduler after all functions are initialized
-  scheduleTaskExecution();
+  // Reconcile canonical hosted state before any local timer can run.
+  void reconcileHostedBatchPlans().finally(() => {
+    scheduleTaskExecution();
+    void openRequestedPlanEditor();
+  });
   // Start countdown timer
   startCountdown();
   loadTaskTemplates();
   // 监听Token刷新等待事件
   $emit.on("token:refresh:waiting", handleTokenRefreshWaiting);
+  $emit.on("open-batch-task-modal", () => {
+    nextTick(() => openTaskModal());
+  });
+  $emit.on("edit-batch-task-plan", (planId) => {
+    const target = scheduledTasks.value.find(
+      (t) => t.serverPlanId === planId || t.id === planId,
+    );
+    if (target) {
+      nextTick(() => editTask(target));
+    } else {
+      nextTick(() => openTaskModal());
+    }
+  });
 });
 
 // Cleanup countdown interval on unmount
@@ -4635,8 +5310,10 @@ onBeforeUnmount(() => {
     countdownInterval = null;
   }
 
-  // 移除Token刷新等待事件监听
+  // 移除Token刷新等待与托管计划联动事件监听
   $emit.off("token:refresh:waiting", handleTokenRefreshWaiting);
+  $emit.off("open-batch-task-modal");
+  $emit.off("edit-batch-task-plan");
 
   // Cleanup task scheduler intervals
   if (intervalId.value) {
@@ -4704,6 +5381,7 @@ function getScheduledTask(taskName) {
     batchCampChallenge,
     batchCampChallengePet,
     batchCampClaimTasks,
+    batchStarChallenge,
     batchApplyLegion,
     batcharenafight,
     batchTopUpFish,
@@ -4946,6 +5624,8 @@ const executeScheduledTask = async (task) => {
           await taskFunction(true);
         } else if (taskName === "batchApplyLegion") {
           await taskFunction(task.legionApplyTargetId);
+        } else if (taskName === "batchStarChallenge") {
+          await taskFunction(task.taskOptions || {});
         } else {
           await taskFunction();
         }
@@ -5250,8 +5930,10 @@ const dreamBuyList = ref([]);
 // Black Market Purchase Modal Logic
 const showBlackMarketPurchaseModal = ref(false);
 const blackMarketPurchaseList = ref(createDefaultBlackMarketPurchaseList());
+const blackMarketPurchaseCount = ref(null);
 
 const openBlackMarketPurchaseModal = () => {
+  blackMarketPurchaseCount.value = batchSettings.blackMarketPurchaseCount ?? null;
   blackMarketPurchaseList.value = normalizeBlackMarketPurchaseList(
     batchSettings.blackMarketPurchaseList?.length
       ? batchSettings.blackMarketPurchaseList
@@ -5281,6 +5963,10 @@ const resetBlackMarketPurchaseList = () => {
 };
 
 const saveBlackMarketPurchaseConfig = () => {
+  if (!isBlackMarketPurchaseCountValid(blackMarketPurchaseCount.value)) {
+    message.error("采购次数必须留空或为 1–2147483647 的整数");
+    return;
+  }
   const normalized = normalizeBlackMarketPurchaseList(
     blackMarketPurchaseList.value,
   );
@@ -5291,6 +5977,7 @@ const saveBlackMarketPurchaseConfig = () => {
   }
 
   batchSettings.blackMarketPurchaseList = normalized;
+  batchSettings.blackMarketPurchaseCount = blackMarketPurchaseCount.value ?? null;
   saveBatchSettings();
 
   showBlackMarketPurchaseModal.value = false;
@@ -5369,6 +6056,8 @@ const loadSettings = (tokenId) => {
       claimHangUp: true,
       claimEmail: true,
       blackMarketPurchase: true,
+      buyGold: true,
+      sendFriendGold: true,
     };
     return raw ? { ...defaultSettings, ...JSON.parse(raw) } : defaultSettings;
   } catch (error) {
@@ -5377,22 +6066,163 @@ const loadSettings = (tokenId) => {
   }
 };
 
+const serverDelayFields = [
+  { key: "commandDelay", label: "指令间隔" },
+  { key: "taskDelay", label: "任务间隔" },
+  { key: "actionDelay", label: "操作间隔" },
+  { key: "battleDelay", label: "战斗间隔" },
+  { key: "refreshDelay", label: "刷新间隔" },
+  { key: "longDelay", label: "长操作间隔" },
+];
+
+const createTaskOptionsFromGlobals = () => ({
+  boxCount: batchSettings.boxCount,
+  fishCount: batchSettings.fishCount,
+  recruitCount: batchSettings.recruitCount,
+  defaultBoxType: batchSettings.defaultBoxType,
+  defaultFishType: batchSettings.defaultFishType,
+  targetBoxPoints: batchSettings.targetBoxPoints,
+  cdkCodes: batchSettings.cdkCodes || "",
+  cdkPlatformType: batchSettings.cdkPlatformType || "h5",
+  starChallengeBossIds: [...(batchSettings.starChallengeBossIds || DEFAULT_STAR_CHALLENGE_OPTIONS.starChallengeBossIds)],
+  starChallengeFormationSource: batchSettings.starChallengeFormationSource || "saved",
+  starChallengeMaxAttempts: batchSettings.starChallengeMaxAttempts ?? 1,
+  starChallengeTargetStars: batchSettings.starChallengeTargetStars ?? 3,
+  starChallengeClaimRewards: batchSettings.starChallengeClaimRewards ?? true,
+  dreamPurchaseList: [...(batchSettings.dreamPurchaseList || [])],
+  blackMarketPurchaseList: normalizeBlackMarketPurchaseList(batchSettings.blackMarketPurchaseList),
+  blackMarketPurchaseCount: batchSettings.blackMarketPurchaseCount ?? null,
+  receiverId: batchSettings.receiverId || recipientIdInput.value || "",
+  password: securityPassword.value || batchSettings.password || "",
+  giftQuantity: giftQuantity.value || 10,
+  giftAll: false,
+  weirdTowerMaxClimb: weirdTowerMaxClimb.value,
+  legionApplyTargetId: null,
+  commandDelay: batchSettings.commandDelay,
+  taskDelay: batchSettings.taskDelay,
+  actionDelay: batchSettings.actionDelay,
+  battleDelay: batchSettings.battleDelay,
+  refreshDelay: batchSettings.refreshDelay,
+  longDelay: batchSettings.longDelay,
+});
+
+const createTaskOptionsFromPlan = (task) => {
+  const base = createTaskOptionsFromGlobals();
+  const source = { ...(task?.taskOptions || {}) };
+  const hasPassword = Boolean(task?.hasPassword || source.hasPassword);
+  const hasCdkCodes = Boolean(task?.hasCdkCodes || source.hasCdkCodes);
+  delete source.hasPassword;
+  delete source.hasCdkCodes;
+  delete source.password;
+  delete source.cdkCodes;
+  const options = { ...base, ...source, ...(task?.delaySettings || {}) };
+  options.blackMarketPurchaseCount = Object.hasOwn(source, "blackMarketPurchaseCount")
+    ? source.blackMarketPurchaseCount
+    : null;
+  options.password = "";
+  options.cdkCodes = "";
+  // An explicit empty list is a valid saved choice: do not silently restore
+  // the global default purchases while editing an existing hosted plan.
+  options.blackMarketPurchaseList = Array.isArray(options.blackMarketPurchaseList)
+    ? normalizeBlackMarketPurchaseList(options.blackMarketPurchaseList)
+    : createDefaultBlackMarketPurchaseList();
+  options.dreamPurchaseList = [...(options.dreamPurchaseList || [])];
+  // The API deliberately stores this identifier as a canonical string. The
+  // number input needs its display value converted back without changing the
+  // persisted representation on the next save.
+  const legionApplyTargetId = Number(options.legionApplyTargetId);
+  options.legionApplyTargetId = Number.isSafeInteger(legionApplyTargetId) && legionApplyTargetId > 0
+    ? legionApplyTargetId
+    : null;
+  return { options, hasPassword, hasCdkCodes };
+};
+
+const defaultDailyTaskSettings = () => ({
+  arenaFormation: 1, towerFormation: 1, bossFormation: 1, bossTimes: 2,
+  claimBottle: true, payRecruit: true, openBox: true, arenaEnable: true,
+  claimHangUp: true, claimEmail: true, blackMarketPurchase: true, freeGachaEnable: true,
+  buyGold: true, sendFriendGold: true,
+});
+
+watch(
+  () => [taskForm.execution, taskForm.selectedTokens.join("|")],
+  () => {
+    if (taskForm.execution !== "server") return;
+    for (const id of taskForm.selectedTokens) {
+      if (!taskForm.dailySettingsByAccount[id])
+        taskForm.dailySettingsByAccount[id] = clonePlanValue(
+          loadSettings(id) || defaultDailyTaskSettings(),
+        );
+    }
+  },
+);
+
+const addPlanMarketItem = () => {
+  taskForm.taskOptions.blackMarketPurchaseList.push(createBlackMarketPurchaseEntry());
+};
+const updatePlanMarketItem = (index, itemId) => {
+  taskForm.taskOptions.blackMarketPurchaseList[index] = createBlackMarketPurchaseEntry(itemId);
+};
+const removePlanMarketItem = (index) => {
+  taskForm.taskOptions.blackMarketPurchaseList.splice(index, 1);
+};
+const resetPlanMarketItems = () => {
+  taskForm.taskOptions.blackMarketPurchaseList = createDefaultBlackMarketPurchaseList();
+};
+
 const openSettings = (token) => {
+  if (savingSettings.value) return;
   currentSettingsTokenId.value = token.id;
   currentSettingsTokenName.value = token.name;
   const saved = loadSettings(token.id);
-  Object.assign(currentSettings, saved);
+  Object.assign(currentSettings, defaultDailyTaskSettings(), saved);
+  settingsBeforeEdit.value = { ...currentSettings };
   showSettingsModal.value = true;
 };
 
-const saveSettings = () => {
-  if (currentSettingsTokenId.value) {
-    localStorage.setItem(
-      `daily-settings:${currentSettingsTokenId.value}`,
-      JSON.stringify(currentSettings),
-    );
-    message.success(`已保存 ${currentSettingsTokenName.value} 的设置`);
-    showSettingsModal.value = false;
+const saveSettings = async () => {
+  const tokenId = currentSettingsTokenId.value;
+  if (!tokenId || savingSettings.value) return;
+  const tokenName = currentSettingsTokenName.value;
+  savingSettings.value = true;
+  try {
+    const localSettings = { ...currentSettings };
+    try {
+      localStorage.setItem(`daily-settings:${tokenId}`, JSON.stringify(localSettings));
+    } catch (error) {
+      message.error(`本机设置保存失败：${error.message || "浏览器存储不可用"}`);
+      return;
+    }
+
+    const dailySettings = pickDailyTaskSettings(localSettings);
+    delete dailySettings.freeGachaEnable;
+    for (const key of ["arenaFormation", "towerFormation", "bossFormation"]) {
+      if (localSettings[key] === settingsBeforeEdit.value?.[key]) delete dailySettings[key];
+    }
+
+    let closeAfterSave = false;
+    try {
+      const { updatedCount = 0 } = await hostedRequest(
+        `/batch-plans/account-settings/${encodeURIComponent(tokenId)}`,
+        { method: "PATCH", body: { dailySettings } },
+      );
+      await reconcileHostedBatchPlans();
+      if (updatedCount > 0)
+        message.success(`已保存 ${tokenName} 的设置，并同步到 ${updatedCount} 个托管计划`);
+      else
+        message.info(`已保存 ${tokenName} 的本机设置；服务器没有关联的托管计划`);
+      closeAfterSave = true;
+    } catch (error) {
+      if (error.status === 401) {
+        message.info(`已保存 ${tokenName} 的本机设置；未登录托管账号，托管计划未同步`);
+        closeAfterSave = true;
+      }
+      else
+        message.warning(`本机设置已保存；托管同步失败，可留在此处重试：${error.message}`);
+    }
+    if (closeAfterSave) showSettingsModal.value = false;
+  } finally {
+    savingSettings.value = false;
   }
 };
 
@@ -5542,6 +6372,8 @@ const resetTemplateForm = () => {
     claimHangUp: true,
     claimEmail: true,
     blackMarketPurchase: true,
+    buyGold: true,
+    sendFriendGold: true,
   });
 };
 
@@ -5882,8 +6714,10 @@ const addLog = (log) => {
   // 在后台运行时，浏览器可能会限制DOM操作
   try {
     if (logContainer.value && autoScrollLog.value) {
-      // 直接尝试滚动，不使用nextTick
       logContainer.value.scrollTop = logContainer.value.scrollHeight;
+    }
+    if (drawerLogContainer.value && autoScrollLog.value) {
+      drawerLogContainer.value.scrollTop = drawerLogContainer.value.scrollHeight;
     }
   } catch (error) {
     // 忽略DOM操作错误，确保日志数据仍然被记录
@@ -5896,6 +6730,9 @@ const addLog = (log) => {
       if (logContainer.value && autoScrollLog.value) {
         logContainer.value.scrollTop = logContainer.value.scrollHeight;
       }
+      if (drawerLogContainer.value && autoScrollLog.value) {
+        drawerLogContainer.value.scrollTop = drawerLogContainer.value.scrollHeight;
+      }
     } catch (error) {
       // 忽略错误
     }
@@ -5903,10 +6740,11 @@ const addLog = (log) => {
 };
 
 watch(autoScrollLog, (newValue) => {
-  if (newValue && logContainer.value) {
+  if (newValue) {
     nextTick(() => {
       try {
-        logContainer.value.scrollTop = logContainer.value.scrollHeight;
+        if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight;
+        if (drawerLogContainer.value) drawerLogContainer.value.scrollTop = drawerLogContainer.value.scrollHeight;
       } catch (error) {
         // 忽略DOM操作错误
         console.warn("Failed to scroll log container:", error);
@@ -6198,6 +7036,8 @@ const { batchCampChallenge, batchCampChallengePet, batchCampClaimTasks } =
   tasksCampChallenge;
 const tasksXuanwuBlessing = createTasksXuanwuBlessing(createTaskDeps());
 const { batchXuanwuBlessing } = tasksXuanwuBlessing;
+const tasksStarChallenge = createTasksStarChallenge(createTaskDeps());
+const { batchStarChallenge } = tasksStarChallenge;
 
 // 营地挑战模式选择
 const campChallengeMode = ref("pet");
@@ -6738,4 +7578,410 @@ const stopBatch = () => {
     }
   }
 }
+
+.batch-workspace-toolbar {
+  position: relative;
+  z-index: 5;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e1e9f4;
+  border-radius: 13px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(21, 37, 63, 0.04);
+}
+.batch-workspace-toolbar__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.batch-workspace-toolbar__heading > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+.batch-workspace-toolbar__heading strong { color: #15253f; font-size: 15px; }
+.batch-workspace-toolbar__heading span { color: #6e7c92; font-size: 12px; }
+.batch-workspace-toolbar__primary-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+.batch-workspace-toolbar :deep(.n-button) { min-height: 42px; font-size: 13px; }
+.batch-workspace-tools { position: relative; }
+.batch-workspace-tools > summary {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid #e1e9f4;
+  border-radius: 9px;
+  color: #354761;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  list-style: none;
+  white-space: nowrap;
+}
+.batch-workspace-tools > summary::-webkit-details-marker { display: none; }
+.batch-workspace-tools__content {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid #e7edf5;
+  border-radius: 11px;
+  background: #f8fafd;
+}
+.batch-workspace-schedule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid #e4ebf4;
+  border-radius: 10px;
+  background: #fff;
+}
+.batch-workspace-schedule strong { color: #15253f; font-size: 13px; }
+.workspace-server-hint { margin: 7px 0 0; color: #6e7c92; font-size: 12px; line-height: 1.5; }
+.plan-execution-badge { display: inline-flex; margin-left: 8px; padding: 2px 8px; border-radius: 999px; color: #1d4ed8; background: #eff6ff; font-size: 11px; font-weight: 600; vertical-align: middle; }
+.plan-execution-badge--pending { color: #92400e; background: #fff7ed; }
+.plan-execution-badge--local { color: #475569; background: #f1f5f9; }
+.batch-log-jump-btn {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid #e1e9f4;
+  border-radius: 9px;
+  color: #354761;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.batch-live-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 7px 11px;
+  border: 1px solid #cce0ff;
+  border-radius: 9px;
+  background: #edf4ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.batch-live-strip__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2563eb;
+}
+.batch-live-strip__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.batch-live-strip__link {
+  flex: 0 0 auto;
+  font-size: 11px;
+  text-decoration: underline;
+}
+.batch-workspace-schedule p { margin: 3px 0 0; color: #6e7c92; font-size: 12px; }
+.batch-workspace-tool-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+.batch-workspace-utility-actions { padding-top: 2px; }
+.batch-daily-tasks--embedded :deep(.token-list-card .n-card-header) { padding: 12px 14px 6px; }
+.batch-daily-tasks--embedded :deep(.token-list-card .n-card__content) { padding: 0 12px 12px; }
+.batch-daily-tasks--embedded :deep(.embedded-token-checkbox) { width: 100%; min-width: 0; }
+.batch-daily-tasks--embedded :deep(.embedded-token-checkbox .n-checkbox__label) { min-width: 0; width: 100%; }
+.batch-daily-tasks--embedded .token-row { width: 100%; min-width: 0; min-height: 42px; gap: 8px; }
+.batch-daily-tasks--embedded .token-item { min-width: 0; flex: 1 1 auto; gap: 6px; }
+.batch-daily-tasks--embedded .token-item > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.batch-daily-tasks--embedded :deep(.token-item .n-tag) { flex: 0 0 auto; }
+.batch-daily-tasks--embedded :deep(.token-row > .n-button) { width: 40px; min-height: 40px; flex: 0 0 auto; }
+@media (max-width: 600px) {
+  .batch-workspace-toolbar { padding: 10px; }
+  .batch-workspace-toolbar__heading { align-items: flex-start; flex-direction: column; gap: 9px; }
+  .batch-workspace-toolbar__primary-actions { width: 100%; }
+  .batch-workspace-toolbar__primary-actions > :deep(.n-button) { flex: 1 1 auto; }
+  .batch-workspace-tools { width: 100%; }
+  .batch-workspace-tools > summary { width: 100%; justify-content: center; }
+  .batch-workspace-tools__content { padding: 9px; }
+  .batch-workspace-schedule { align-items: flex-start; flex-direction: column; }
+  .batch-workspace-tool-actions { width: 100%; }
+  .batch-workspace-tool-actions :deep(.n-button),
+  .batch-workspace-tool-actions :deep(.n-upload) { flex: 1 1 auto; }
+}
+
+.batch-daily-tasks--embedded {
+  width: 100%;
+  height: auto;
+  min-height: 100%;
+  padding: 12px;
+  overflow: visible;
+  background: #f3f6fb;
+}
+.batch-daily-tasks--embedded .main-layout {
+  height: auto;
+  min-height: 0;
+  flex-direction: column;
+  overflow: visible;
+  gap: 12px;
+}
+.batch-daily-tasks--embedded .left-column {
+  flex: none;
+  min-width: 0;
+  padding-right: 0;
+  overflow: visible;
+}
+.batch-daily-tasks--embedded .right-column {
+  width: 100%;
+  height: auto;
+  max-height: 420px;
+  flex: none;
+  overflow: auto;
+}
+.batch-daily-tasks--embedded .page-header {
+  align-items: flex-start !important;
+  flex-wrap: wrap !important;
+}
+.batch-daily-tasks--embedded .page-header > div:first-child {
+  width: 100%;
+  align-items: flex-start !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+.batch-daily-tasks--embedded .page-header > div:first-child > div,
+.batch-daily-tasks--embedded .page-header > div:nth-child(2) {
+  max-width: 100%;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+.batch-daily-tasks--embedded .page-header > div:first-child > div > div {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.batch-daily-tasks--embedded .token-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.batch-daily-tasks--embedded .log-container {
+  height: 300px;
+  min-height: 240px;
+}
+@media (max-width: 480px) {
+  .batch-daily-tasks--embedded {
+    padding: 8px;
+  }
+  .batch-daily-tasks--embedded .token-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .batch-daily-tasks--embedded .page-header > div:first-child > div {
+    width: 100%;
+  }
+}
+
+/* Embedded workspace modal sizing and controls; standalone pages keep their current layout. */
+:global(.workspace-settings-modal.n-card) {
+  display: flex;
+  flex-direction: column;
+  max-height: min(88vh, 88dvh);
+  overflow: hidden;
+}
+
+:global(.workspace-settings-modal.n-card > .n-card__content) {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+:global(.workspace-settings-modal.n-card > .n-card-header),
+:global(.workspace-settings-modal.n-card > .n-card__action) {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 600px) {
+  :global(.workspace-settings-modal.n-card) {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
+  }
+
+  :global(.workspace-settings-content .n-grid) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  :global(.workspace-settings-content .n-grid-item),
+  :global(.workspace-settings-content .setting-item) {
+    min-width: 0;
+  }
+
+  :global(.workspace-settings-content .setting-item) {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+
+  :global(.workspace-settings-content .setting-label) {
+    width: auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  :global(.workspace-settings-content .n-input),
+  :global(.workspace-settings-content .n-input-number),
+  :global(.workspace-settings-content .n-select) {
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  :global(.workspace-settings-content .workspace-black-market-row) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  :global(.workspace-settings-content .workspace-black-market-row > *) {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* Quick Batch Daily Banner */
+.quick-batch-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%);
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.quick-batch-banner__main {
+  min-width: 0;
+  flex: 1;
+}
+
+.quick-batch-banner__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2329;
+}
+
+.quick-batch-banner__icon {
+  font-size: 16px;
+}
+
+.quick-batch-banner__desc {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.quick-batch-banner__cta {
+  flex-shrink: 0;
+}
+
+.quick-batch-btn {
+  font-weight: 600;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+/* Drawer Custom Header & Container */
+.drawer-header-custom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-right: 8px;
+}
+
+.drawer-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2329;
+}
+
+.drawer-count {
+  font-size: 12px;
+  color: #86909c;
+  margin-left: 6px;
+  font-weight: normal;
+}
+
+.drawer-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.drawer-log-container {
+  max-height: calc(76vh - 120px);
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .quick-batch-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+  .quick-batch-banner__cta {
+    width: 100%;
+  }
+  .quick-batch-btn {
+    width: 100%;
+  }
+}
+
+/* Server Hosted Schedule Callout Banner */
+.workspace-server-banner {
+  margin-bottom: 12px;
+}
+
+.workspace-server-badge {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: 10px;
+}
+
+.server-badge-icon {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.server-badge-text strong {
+  display: block;
+  font-size: 14px;
+  color: #1f2329;
+  margin-bottom: 2px;
+}
+
+.server-badge-text p {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
 </style>

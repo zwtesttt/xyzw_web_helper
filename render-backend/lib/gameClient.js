@@ -13,6 +13,7 @@ const errorCodeMap = {
   12000116: "今日已领取免费奖励",
   3300060: "扫荡条件不满足",
   200400: "操作太快",
+  200760: "界面已变化或登录失效，请重新登录",
   2300190: "今天已签到",
   1000020: "今天已领取",
   700020: "已领取过",
@@ -21,6 +22,18 @@ const errorCodeMap = {
   3500020: "没有可领取的奖励",
   200160: "模块未开启",
   200020: "出了点小问题",
+  "-10006": "今日已领取或未满足领取条件",
+};
+
+const createServerRejection = (msg, command) => {
+  const serverHint = typeof msg.hint === "string" ? msg.hint.trim() : "";
+  const description = Number(msg.code) === 200750
+    ? serverHint || "游戏服务器拒绝了请求，具体原因未确认"
+    : errorCodeMap[msg.code] || serverHint || "未知错误";
+  const error = new Error(`[${msg.code}] ${description}`);
+  error.gameCode = Number(msg.code);
+  error.command = command || "";
+  return error;
 };
 
 // 预注册命令模板
@@ -68,6 +81,10 @@ const CMD_DEFAULTS = {
   mail_getlist: { category: [0, 4, 5], lastId: 0, size: 60 },
   mail_claimallattachment: { category: 0 },
   presetteam_getinfo: {},
+  presetteam_typegetinfo: {},
+  nmext_getinfo: {},
+  nmext_startboss: {},
+  nmext_claimstarreward: {},
   artifact_lottery: { lotteryNumber: 1, newFree: true, type: 1 },
   genie_sweep: { genieId: 1 },
   mergebox_getinfo: {},
@@ -75,6 +92,7 @@ const CMD_DEFAULTS = {
   mergebox_openbox: {},
   discount_claimreward: { discountId: 1 },
   collection_claimfreereward: {},
+  card_claimreward: { cardId: 1 },
 };
 
 // 响应→请求命令映射
@@ -111,6 +129,10 @@ const RESP_MAP = {
   legion_signinresp: "legion_signin",
   mail_claimallattachmentresp: "mail_claimallattachment",
   presetteam_getinforesp: "presetteam_getinfo",
+  presetteam_typegetinforesp: "presetteam_typegetinfo",
+  nmext_getinforesp: "nmext_getinfo",
+  nmext_startbossresp: "nmext_startboss",
+  nmext_claimstarrewardresp: "nmext_claimstarreward",
   artifact_lotteryresp: "artifact_lottery",
   genie_sweepresp: "genie_sweep",
   mergeboxinforesp: "mergebox_getinfo",
@@ -118,6 +140,7 @@ const RESP_MAP = {
   mergebox_openboxresp: "mergebox_openbox",
   discount_claimrewardresp: "discount_claimreward",
   collection_claimfreerewardresp: "collection_claimfreereward",
+  card_claimrewardresp: "card_claimreward",
   syncrewardresp: [
     "system_buygold",
     "system_signinreward",
@@ -127,7 +150,7 @@ const RESP_MAP = {
 };
 
 class GameClient {
-  constructor(tokenData, wsUrl) {
+  constructor(tokenData, wsUrl, options = {}) {
     this.token = tokenData;
     this._wsUrl =
       wsUrl ||
@@ -151,6 +174,8 @@ class GameClient {
     this.heartbeatStartTimer = null;
     this.heartbeatTimer = null;
     this.lastMsgAt = Date.now();
+    this.serverTime = undefined;
+    this.onPacket = typeof options.onPacket === "function" ? options.onPacket : null;
     this._log = (...args) =>
       console.log(
         `[${tokenData.name || "?"}]`,
@@ -179,6 +204,7 @@ class GameClient {
       // Each new transport starts a fresh server-side sequence space.
       this.seq = 0;
       this.ack = 0;
+      this.serverTime = undefined;
       socket.binaryType = "arraybuffer";
 
       let timer;
@@ -239,6 +265,7 @@ class GameClient {
     const socket = this.ws;
     this.ws = null;
     this.connected = false;
+    this.serverTime = undefined;
     this._stopHeartbeat();
     clearTimeout(this.connectionTimer);
     this.connectionTimer = null;
@@ -291,12 +318,16 @@ class GameClient {
   sendWithPromise(cmd, params = {}, timeoutMs = 8000) {
     return new Promise((resolve, reject) => {
       if (!this.connected || this.ws?.readyState !== WebSocket.OPEN) {
-        return reject(new Error("未连接"));
+        const error = new Error("未连接");
+        error.command = cmd;
+        return reject(error);
       }
       const requestSeq = this.seq + 1;
       const timer = setTimeout(() => {
         delete this.promises[requestSeq];
-        reject(new Error(`请求超时: ${cmd} (${timeoutMs}ms)`));
+        const error = new Error(`请求超时: ${cmd} (${timeoutMs}ms)`);
+        error.command = cmd;
+        reject(error);
       }, timeoutMs);
       this.promises[requestSeq] = { resolve, reject, originalCmd: cmd, timer };
       try {
@@ -316,6 +347,7 @@ class GameClient {
       } catch (error) {
         clearTimeout(timer);
         delete this.promises[requestSeq];
+        if (error && typeof error === "object" && !error.command) error.command = cmd;
         reject(error);
       }
     });
@@ -369,10 +401,18 @@ class GameClient {
 
     const msg = protoMsg._raw;
     if (!msg) return;
+    if (Number.isFinite(msg.time) && msg.time > 0) this.serverTime = msg.time;
     if (typeof msg.seq === "number" && msg.seq >= 0) this.ack = msg.seq;
 
     const respKey = msg.resp !== undefined ? msg.resp : msg.cmd;
     const respCmdKey = respKey?.toLowerCase?.() || respKey;
+    try {
+      const pending = this.onPacket?.(protoMsg.rawData || msg, msg, protoMsg);
+      if (pending && typeof pending.then === "function")
+        pending.catch((error) => this.log("数据包回调失败:", error?.message || error));
+    } catch (error) {
+      this.log("数据包回调失败:", error?.message || error);
+    }
 
     if (msg.resp !== undefined && this.promises[msg.resp]) {
       const p = this.promises[msg.resp];
@@ -381,16 +421,22 @@ class GameClient {
       if (msg.code === 0 || msg.code === undefined) {
         p.resolve(protoMsg.rawData || msg);
       } else {
-        p.reject(
-          new Error(
-            `[${msg.code}] ${errorCodeMap[msg.code] || msg.hint || "未知错误"}`,
-          ),
-        );
+        p.reject(createServerRejection(msg, p.originalCmd));
       }
       return;
     }
 
     let requestCmd = RESP_MAP[respCmdKey];
+    if (!requestCmd && typeof respCmdKey === "string" && respCmdKey.endsWith("resp")) {
+      const naturalCommand = respCmdKey.slice(0, -4);
+      const matchingPending = Object.values(this.promises).find(
+        (request) => String(request.originalCmd).toLowerCase() === naturalCommand,
+      );
+      // Natural `<command>resp` inference is deliberately limited to a
+      // currently pending command. It must not turn an unrelated push/ACK into
+      // a successful response for a different request.
+      if (matchingPending) requestCmd = matchingPending.originalCmd;
+    }
     if (!requestCmd) return;
     if (typeof requestCmd === "string") requestCmd = [requestCmd];
 
@@ -401,11 +447,7 @@ class GameClient {
         if (msg.code === 0 || msg.code === undefined) {
           p.resolve(protoMsg.rawData || msg);
         } else {
-          p.reject(
-            new Error(
-              `[${msg.code}] ${errorCodeMap[msg.code] || msg.hint || "未知错误"}`,
-            ),
-          );
+          p.reject(createServerRejection(msg, p.originalCmd));
         }
         break;
       }

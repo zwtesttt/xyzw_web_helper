@@ -616,7 +616,7 @@ window.boot = async function () {
       } else if (settings.orientation === 'portrait') {
         cc.view.setOrientation(cc.macro.ORIENTATION_PORTRAIT)
       }
-      cc.view.enableAutoFullScreen(
+      var enableAutoFullScreen =
         [
           cc.sys.BROWSER_TYPE_BAIDU,
           cc.sys.BROWSER_TYPE_BAIDU_APP,
@@ -626,7 +626,8 @@ window.boot = async function () {
           cc.sys.BROWSER_TYPE_HUAWEI,
           cc.sys.BROWSER_TYPE_UC
         ].indexOf(cc.sys.browserType) < 0
-      )
+      if (window.parent !== window) enableAutoFullScreen = false
+      cc.view.enableAutoFullScreen(enableAutoFullScreen)
     }
 
     // Limit downloading max concurrent task to 2,

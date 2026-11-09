@@ -9,6 +9,8 @@
  * @returns {object} 任务函数集合
  */
 export function createTasksLegacy(deps) {
+  const sleep = deps.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const logError = deps.onError || ((...args) => globalThis.console.error(...args));
   const {
     selectedTokens,
     tokens,
@@ -68,7 +70,7 @@ export function createTasksLegacy(deps) {
         });
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -280,7 +282,7 @@ export function createTasksLegacy(deps) {
           break;
         } catch (error) {
           consecutiveErrors++;
-          console.error(`赠送失败: ${error.message}`);
+          logError(`赠送失败: ${error.message}`);
 
           let errorMsg = error.message || "未知错误";
 
@@ -298,7 +300,7 @@ export function createTasksLegacy(deps) {
               message: `=== ${token.name} 赠送功法残卷失败: ${errorMsg}，将在3秒后重试 ===`,
               type: "warning",
             });
-            await new Promise((r) => setTimeout(r, delayConfig.long));
+            await sleep(delayConfig.long);
           } else {
             addLog({
               time: new Date().toLocaleTimeString(),

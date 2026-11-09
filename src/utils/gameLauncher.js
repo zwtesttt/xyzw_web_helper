@@ -172,6 +172,87 @@ export function convertBinToLx(buffer, random = Math.random) {
   return bytes;
 }
 
+export async function prepareSingleGameLaunch({
+  token,
+  getArrayBuffer,
+  localStorage,
+}) {
+  if (!token?.id || typeof getArrayBuffer !== "function") {
+    return { success: false, reason: "read-failed" };
+  }
+
+  let buffer;
+  try {
+    buffer = await getArrayBuffer(token.id);
+  } catch {
+    return { success: false, reason: "read-failed" };
+  }
+  if (!buffer) return { success: false, reason: "missing-bin" };
+
+  let bytes;
+  try {
+    bytes = convertBinToLx(buffer);
+  } catch {
+    return { success: false, reason: "convert-failed" };
+  }
+
+  let existingFiles;
+  try {
+    const storedFiles = localStorage.getItem("bin_file_list");
+    existingFiles = storedFiles ? JSON.parse(storedFiles) : [];
+  } catch (error) {
+    if (error instanceof SyntaxError) existingFiles = [];
+    else return { success: false, reason: "storage-failed" };
+  }
+  if (!Array.isArray(existingFiles)) existingFiles = [];
+  const originalSize = buffer.byteLength;
+  if (!existingFiles.some((file) => file?.id === token.id)) {
+    existingFiles.push({
+      id: token.id,
+      name: token.name || "Token",
+      byteLength: originalSize,
+      size: `${(originalSize / 1024).toFixed(1)} KB`,
+      order: existingFiles.length,
+    });
+  }
+
+  const entries = [
+    [
+      `bin_data_${token.id}`,
+      Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(""),
+    ],
+    ["current_bin_id", token.id],
+    ["bin_file_list", JSON.stringify(existingFiles)],
+  ];
+  let previousValues;
+  try {
+    previousValues = entries.map(([key]) => localStorage.getItem(key));
+  } catch {
+    return { success: false, reason: "storage-failed" };
+  }
+
+  const attemptedKeys = [];
+  try {
+    for (const [key, value] of entries) {
+      attemptedKeys.push(key);
+      localStorage.setItem(key, value);
+    }
+  } catch {
+    for (const key of attemptedKeys.reverse()) {
+      const index = entries.findIndex(([entryKey]) => entryKey === key);
+      try {
+        if (previousValues[index] === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, previousValues[index]);
+      } catch {
+        // Continue best-effort rollback while preserving the original failure.
+      }
+    }
+    return { success: false, reason: "storage-failed" };
+  }
+
+  return { success: true, tokenId: token.id, originalSize };
+}
+
 export function readActiveMultiGameLaunch(storage) {
   try {
     const parsed = JSON.parse(

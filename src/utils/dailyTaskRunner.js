@@ -4,7 +4,8 @@ import {
   getDailyTaskStates,
   loadDailyTaskConfig,
   runWithDailyTaskLock,
-} from "@/utils/dailyTaskState";
+} from "./dailyTaskState.js";
+import { isDailyBusinessRejection } from "./gameErrorPolicy.js";
 
 const taskLabels = {
   1: "登录游戏",
@@ -185,6 +186,8 @@ export class DailyTaskRunner {
         claimEmail: true,
         blackMarketPurchase: true,
         freeGachaEnable: true,
+        buyGold: true,
+        sendFriendGold: true,
       };
       return raw ? { ...defaultSettings, ...JSON.parse(raw) } : defaultSettings;
     } catch (error) {
@@ -344,7 +347,7 @@ export class DailyTaskRunner {
       });
     }
 
-    if (!isTaskCompleted(3)) {
+    if (!isTaskCompleted(3) && settings.sendFriendGold !== false) {
       taskList.push({
         name: "赠送好友金币",
         condition: 3,
@@ -385,7 +388,7 @@ export class DailyTaskRunner {
       }
     }
 
-    if (!isTaskCompleted(6)) {
+    if (!isTaskCompleted(6) && settings.buyGold !== false) {
       const remaining = this.getTaskState(6).remaining;
       for (let i = 0; i < remaining; i++) {
         taskList.push({
@@ -652,9 +655,9 @@ export class DailyTaskRunner {
       ...(isTodayAvailable(statisticsTime["legion:sign:in"])
         ? [{ name: "俱乐部", cmd: "legion_signin" }]
         : []),
-      { name: "领取每日礼包", cmd: "discount_claimreward" },
+      { name: "领取每日礼包", cmd: "discount_claimreward", params: { discountId: 1 } },
       ...(isTodayAvailable(roleData.cardTime?.[1]?.lastClaimTime)
-        ? [{ name: "领取免费礼包", cmd: "card_claimreward" }]
+        ? [{ name: "领取免费礼包", cmd: "card_claimreward", params: { cardId: 1 } }]
         : []),
       ...(isTodayAvailable(roleData.cardTime?.[4003]?.lastClaimTime)
         ? [
@@ -858,12 +861,23 @@ export class DailyTaskRunner {
           );
           for (const rewardId of ids) {
             this.throwIfInterrupted(tokenId);
-            await this.executeGameCommand(
-              tokenId,
-              weekly ? "task_claimweekreward" : "task_claimdailyreward",
-              { rewardId },
-              `领取${weekly ? "周常" : "日常"}积分奖励${rewardId}`,
-            );
+            try {
+              await this.executeGameCommand(
+                tokenId,
+                weekly ? "task_claimweekreward" : "task_claimdailyreward",
+                { rewardId },
+                `领取${weekly ? "周常" : "日常"}积分奖励${rewardId}`,
+              );
+            } catch (error) {
+              if (isDailyBusinessRejection(error)) {
+                this.log(
+                  `领取${weekly ? "周常" : "日常"}积分奖励${rewardId}未成功: ${error.message}，跳过此项继续`,
+                  "warning",
+                );
+                continue;
+              }
+              throw error;
+            }
           }
         },
       });
@@ -933,11 +947,7 @@ export class DailyTaskRunner {
           if (this.activeCondition === undefined) supplementalIncomplete++;
           this.log(`任务执行失败: ${task.name} - ${error.message}`, "error");
           // Match the original runner: a business rejection fails this step only.
-          if (
-            !error.serverStateUnavailable &&
-            /服务器错误:\s*\d+/.test(error.message || "") &&
-            !/\b(?:200400|12400000)\b/.test(error.message || "")
-          ) {
+          if (isDailyBusinessRejection(error)) {
             this.throwIfInterrupted(tokenId);
             continue;
           }

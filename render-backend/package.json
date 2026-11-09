@@ -3,8 +3,9 @@
   "type": "module",
   "version": "1.0.0",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "start": "node hosted-server.js",
+    "dev": "node --watch hosted-server.js",
+    "start:legacy": "node server.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
@@ -15,5 +16,8 @@
     "lz4js": "^0.2.0",
     "node-cron": "^3.0.3",
     "ws": "^8.16.0"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }

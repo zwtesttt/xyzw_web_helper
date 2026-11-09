@@ -141,6 +141,51 @@ test("convertBinToLx preserves lx data and converts x data", () => {
   assert.ok(converted.length > 4);
 });
 
+test("prepareSingleGameLaunch writes converted BIN and selected role metadata", async () => {
+  assert.equal(typeof launcher.prepareSingleGameLaunch, "function");
+  const local = new MemoryStorage();
+  const result = await launcher.prepareSingleGameLaunch({
+    token: { id: "a", name: "账号 A" },
+    getArrayBuffer: async () => Uint8Array.from([112, 108, 1, 2, 3]).buffer,
+    localStorage: local,
+  });
+
+  assert.deepEqual(result, { success: true, tokenId: "a", originalSize: 5 });
+  assert.equal(local.getItem("bin_data_a"), "706c010203");
+  assert.equal(local.getItem("current_bin_id"), "a");
+  assert.deepEqual(JSON.parse(local.getItem("bin_file_list")), [
+    { id: "a", name: "账号 A", byteLength: 5, size: "0.0 KB", order: 0 },
+  ]);
+});
+
+test("prepareSingleGameLaunch reports missing BIN without writing storage", async () => {
+  const local = new MemoryStorage();
+  const result = await launcher.prepareSingleGameLaunch({
+    token: { id: "missing", name: "无BIN角色" },
+    getArrayBuffer: async () => null,
+    localStorage: local,
+  });
+
+  assert.deepEqual(result, { success: false, reason: "missing-bin" });
+  assert.equal(local.length, 0);
+});
+
+test("prepareSingleGameLaunch rolls back writes when localStorage fails", async () => {
+  const local = new FailingStorage(2);
+  local.setItem("current_bin_id", "previous");
+  local.writeCount = 0;
+  const result = await launcher.prepareSingleGameLaunch({
+    token: { id: "a", name: "账号 A" },
+    getArrayBuffer: async () => Uint8Array.from([112, 108, 1, 2, 3]).buffer,
+    localStorage: local,
+  });
+
+  assert.deepEqual(result, { success: false, reason: "storage-failed" });
+  assert.equal(local.getItem("bin_data_a"), null);
+  assert.equal(local.getItem("current_bin_id"), "previous");
+  assert.equal(local.getItem("bin_file_list"), null);
+});
+
 test("prepareMultiGameLaunch seeds isolated accounts in display order and records failures", async () => {
   assert.equal(typeof launcher.prepareMultiGameLaunch, "function");
   const local = new MemoryStorage();

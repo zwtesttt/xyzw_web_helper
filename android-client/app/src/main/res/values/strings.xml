@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">咸鱼助手</string>
+    <string name="server_label">服务器 · %1$s</string>
+</resources>

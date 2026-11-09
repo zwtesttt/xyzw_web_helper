@@ -154,30 +154,91 @@ pnpm run lint     # 代码检查和修复
 pnpm run format   # 代码格式化
 ```
 
-### 部署代理服务 (Cloudflare Pages)
+### Docker 部署（推荐）
 
-本项目推荐使用 Cloudflare Pages 进行部署，内置了对 API 代理的支持。
+仓库根目录提供了可直接构建的多阶段 Docker 配置。镜像包含静态网页、Nginx 和微信扫码／手机号登录所需的 HTTPS 代理，不需要单独配置前端环境变量。
 
-1. **准备代码**：https://github.com/w1249178256/xyzw_web_helper.git
-2. **连接仓库**：在 Cloudflare Dashboard 中选择 "Pages" -> "Connect to Git"，选择本项目仓库。
-3. **构建设置**：
-    - **构建命令**: `npm run build`
-    - **构建输出目录**: `dist`
-4. **环境变量**（可选）：可以在 Cloudflare Pages 设置中添加环境变量。
-5. **部署**：点击 "Save and Deploy"。
+前置条件：已安装并启动 Docker Engine，且包含 Docker Compose v2。
 
-Cloudflare Pages 会自动识别 `dist/_worker.js` 并启用 Advanced Mode，无需额外配置即可实现 API 代理和静态资源托管。
+```bash
+# 在项目根目录执行
+docker compose up -d --build
+
+# 查看容器状态和日志
+docker compose ps
+docker compose logs -f web
+```
+
+浏览器打开 `http://localhost:8080/tokens`。部署到服务器后，将 `localhost` 换成服务器 IP 或域名；从公网使用时，请在域名前配置 HTTPS 反向代理，并通过 HTTPS 访问登录页面。
+
+修改宿主机端口：
+
+```bash
+PORT=9000 docker compose up -d --build
+```
+
+Windows PowerShell：`$env:PORT="9000"; docker compose up -d --build`。Windows 命令提示符：`set PORT=9000 && docker compose up -d --build`。
+
+更新代码后重新构建：`docker compose up -d --build`。停止并移除容器：`docker compose down`。如只需要静态网页和登录代理，可单独构建前端镜像；服务器账号、托管任务和历史记录需要通过 Compose 同时启动后端。
+
+```bash
+docker build -f docker/dockerfile -t xyzw_web_helper:latest .
+```
+
+Compose 同时启动网页容器和托管后端。打开 `http://<服务器地址>:8080/server` 注册账号，然后在“服务器账号”中添加凭据。已有角色可点击“从本浏览器明确导入角色”；先在“Token 管理”页扫码添加到当前浏览器，再返回服务器托管页选择导入。也可以直接粘贴角色 Token。BIN 内容可选，用于任务执行时刷新短期 Token。服务器凭据使用 AES-256-GCM 加密保存在 `hosted_data` 卷，网页不会回显凭据。
+
+服务器托管页用于查看计划、启停、手动运行和查看逐账号结果。“新建托管日常”和“编辑计划”会打开任务页的同一批量计划编辑器，完整支持现有 39 项可定时批量任务；已有旧版独立任务仍可继续运行。定时计划由后台调度器执行，浏览器关闭后仍会运行；手动游戏操作仍在浏览器中运行。
+
+批量日常计划可在“托管 → 任务 → 新建托管日常”中创建，保存后由托管服务器按北京时间运行；登录后可查看、暂停、删除或手动触发。服务器模式支持任务页现有的全部 39 个可定时批量操作，并为每个计划保存独立的数量、清单、阵容、六项延迟和活动选项。密码及兑换码仅以加密形式保存，编辑时留空会保留原值且不会回显。运行进度会持续写入；停止仅取消当前计划组中排队或运行的任务，不会关闭后续排程。托管默认最多并发执行 5 个账号，同一托管账号始终串行；可设置环境变量 `HOSTED_TASK_CONCURRENCY` 为 1–20 的整数调整，默认 5。该锁作用于单个后端进程，不要将多个后端副本连接到同一个托管数据库。单次执行受 60 分钟和 10,000 条游戏指令上限保护。所选角色凭据会随计划保存到托管服务器并加密；本机延迟和日常设置会一并保存为该计划配置，后续调整后需重新保存。
+
+黑市配置中的“采购次数”留空时沿用游戏当前设置；手动执行“黑市一键采购”前，若填写了次数，程序会先同步并校验游戏配置，同时保留服务器当前商品清单，然后只发送一次采购请求。日常补任务里的“黑市购买1次物品”是独立步骤，不额外写入该采购次数或循环请求。托管计划遇到普通单项业务错误会记为失败并继续后续任务；已领取、未开放或资源不足等已知情况会记为跳过。登录失效、连接或角色状态不可用、写入确认丢失、取消和运行上限会停止当前角色，托管记录显示失败或部分失败；系统不会自动重试整项任务。
+
+建议把应用放在 HTTPS 反向代理之后，并配置 `COOKIE_SECURE=true`：
+
+```bash
+COOKIE_SECURE=true docker compose up -d
+```
+
+新安装默认允许用户自行注册。若要关闭注册，可配置 `ALLOW_REGISTRATION=false` 后重建或重启服务。数据库和 `master.key` 位于同一个 `hosted_data` 卷；备份时两者必须一起备份。升级服务时使用 `docker compose up -d --build`，不要用 `docker compose down -v`，否则会删除账号、任务记录和密钥。
+
+Nginx 之外的 HTTPS 代理应保留原始 `Host` 和 `X-Forwarded-Proto`，以便服务器校验同源请求。若需要本机开发托管页面，先运行 `npm --prefix render-backend ci` 安装后端依赖，再运行 `DATA_DIR=./data PORT=3001 npm --prefix render-backend start` 启动后端，最后运行 Vite；后端数据保存在 `render-backend/data`，页面通过 `/api/server` 访问本地后端。
+
+### Android 客户端
+
+Android 应用“咸鱼助手”是连接现有网页服务的 WebView 客户端，APK 不包含服务器或游戏自动化后端。网页端以统一的“总览、游戏、任务、账号、托管”工作区呈现原有功能；原生顶栏显示服务器地址，并提供首页、刷新和服务器设置入口。游戏操作与网页任务需要应用页面运行；只有“后台托管”中已启用的服务器计划会在关闭应用后继续执行，浏览器本地 Token 不会自动上传。先在电脑或服务器启动 Docker 服务，再在手机首次打开应用时填写该服务器地址。手机上的 `localhost` 指手机自身，不是电脑或 Docker 服务器。
+
+构建需要 Android SDK Platform 35、JDK 17 或 21。macOS 上脚本会优先使用 `JAVA_HOME` 中的兼容 JDK，否则使用 Android Studio 自带的 JDK 21：
+
+```bash
+./scripts/build-android.sh
+```
+
+脚本会运行 Android 单元测试、Android Lint 并构建调试 APK，输出到 `android-client/app/build/outputs/apk/debug/app-debug.apk`。调试 APK 由标准 Android debug key 签名；连接设备后可用 `adb install -r android-client/app/build/outputs/apk/debug/app-debug.apk` 安装。正式版只允许 HTTPS；`assembleRelease` 生成未签名 APK，发布前需要由应用所有者配置并使用自己的签名密钥，密钥不应提交到仓库。
+
+调试版允许用 HTTP 连接同一局域网中的服务。Android 模拟器可填 `http://10.0.2.2:8080`；真机可填 Docker 主机的局域网 IP，例如 `http://192.168.1.20:8080`。部署使用 HTTPS 域名时，调试版和正式版都可填写 `https://<服务器域名>`。应用只接受服务器源地址，不填写 /server 路径。Android WebView 支持网页生成的 Blob/Data 文件导出，并通过系统保存窗口选择位置；服务器直接下载的 HTTP 文件暂不支持。本机执行的网页游戏工具和批量计划需要保持 App 前台运行；已保存并启用的服务器批量计划由服务器运行，退出 App 后仍继续执行。
+
+应用的 WebView 使用服务器同源会话 Cookie；切换服务器会清除旧站点 Cookie、网页存储和缓存。托管账号凭据仍加密保存在服务器，定时任务由服务器执行；登录会话保存在设备 WebView 中。选择 BIN 文件时系统只授予所选文件的访问权限，应用不会请求整个设备的文件访问权限。
+
+### Cloudflare Pages 部署
+
+项目仍支持 Cloudflare Pages，其 `worker.js` 负责 Cloudflare 环境下的 API 代理。Docker 构建会使用单独的 Nginx 反向代理，不依赖 Cloudflare Worker。
+
+1. 在 Cloudflare Dashboard 的 Pages 中连接仓库。
+2. 构建命令使用 `pnpm build`，输出目录使用 `dist`。
+3. 保存并部署。项目构建会将 `worker.js` 复制为 `dist/_worker.js`，由 Cloudflare Pages Advanced Mode 使用。
+
+> Docker 中的 Nginx 与 `pnpm preview` 都不会运行 Cloudflare Worker；部署到 Docker 时请使用本节提供的 Compose 配置。
 
 ### 本地预览 (Cloudflare Pages)
 
 为了在本地模拟 Cloudflare Pages 环境（包括 `worker.js` 的代理功能），请使用 `wrangler`：
 
 1. **安装 wrangler**: `npm install -g wrangler`
-2. **构建项目**: `npm run build`
+2. **构建项目**: `pnpm build`
 3. **启动预览**: `npx wrangler pages dev dist`
 4. **访问**: 打开浏览器访问 `http://localhost:8787`
 
-> 注意：`npm run preview` 仅提供静态文件预览，无法执行 `worker.js` 中的代理逻辑。请使用 `wrangler` 进行全功能预览。
+> 注意：`pnpm preview` 仅提供静态文件预览，无法执行 `worker.js` 中的代理逻辑。请使用 `wrangler` 进行全功能预览。
 
 ### 部署TokenURL获取服务 (Python)
 

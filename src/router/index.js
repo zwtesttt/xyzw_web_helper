@@ -7,6 +7,18 @@ const generatedRoutes = autoRoutes.routes ?? [];
 
 const my_routes = [
   {
+    path: "/app",
+    name: "AppWorkspace",
+    component: () => import("@/views/AppHome.vue"),
+    meta: { title: "所有功能", requiresToken: false },
+  },
+  {
+    path: "/server",
+    name: "ServerConsole",
+    component: () => import("@/views/ServerConsole.vue"),
+    meta: { title: "服务器托管", requiresToken: false },
+  },
+  {
     path: "/",
     name: "Home",
     component: () => import("@/views/Home.vue"),

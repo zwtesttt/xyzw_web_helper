@@ -1,13 +1,159 @@
 <template>
-  <div class="token-import-page">
+  <div v-if="props.embedded" class="workspace-token-import">
+    <WorkspaceAccountManager
+      :tokens="sortedTokens"
+      :groups="tokenStore.tokenGroups"
+      :selected-token-id="selectedTokenId"
+      :multi-game-selected-token-ids="multiGameSelectedTokenIds"
+      :all-multi-game-tokens-selected="allMultiGameTokensSelected"
+      :is-opening-multi-game="isOpeningMultiGame"
+      :refreshing-tokens="refreshingTokens"
+      :connecting-tokens="connectingTokens"
+      :rate-limit-waiting="rateLimitWaiting"
+      :rate-limit-message="rateLimitMessage"
+      :import-method="importMethod"
+      :show-import-form="showImportForm"
+      :bulk-options="bulkOptions"
+      :sort-config="sortConfig"
+      :get-token-style="getTokenStyle"
+      :get-connection-status-text="getConnectionStatusText"
+      :mask-token="maskToken"
+      :format-time="formatTime"
+      :is-long-term="isTokenLongTerm"
+      :editing-remark="editingRemark"
+      :temp-remarks="tempRemarks"
+      :hosted-synced-role-ids="hostedSyncedRoleIds"
+      :syncing-hosted-tokens="syncingHostedTokens"
+      @open-import="showImportForm = true"
+      @close-import="showImportForm = false"
+      @update:import-method="importMethod = $event"
+      @select-token="selectToken"
+      @token-action="handleTokenAction"
+      @refresh-token="refreshToken"
+      @upgrade-token="upgradeTokenToPermanent"
+      @start-task-management="startTaskManagement"
+      @open-game="openGame"
+      @open-multi-game="openSelectedGames"
+      @open-features="goToGameFeatures"
+      @open-pushing="goToPushingLevels"
+      @bulk-action="handleBulkAction"
+      @sort="toggleSort"
+      @select-all="selectAllMultiGameTokens"
+      @clear-selection="clearMultiGameTokenSelection"
+      @toggle-multi="setMultiGameTokenSelected"
+      @edit-remark="startEditRemark"
+      @update-remark="updateRemark"
+      @save-remark="saveRemark"
+      @cancel-remark="cancelEditRemark"
+      @create-group="tokenStore.createTokenGroup"
+      @group-membership="handleTokenGroupMembership"
+      @sync-hosted="handleSyncHosted"
+    >
+      <template #import-form>
+        <ManualTokenForm
+          v-if="importMethod === 'manual'"
+          @cancel="showImportForm = false"
+          @ok="showImportForm = false"
+        />
+        <UrlTokenForm
+          v-else-if="importMethod === 'url'"
+          @cancel="showImportForm = false"
+          @ok="showImportForm = false"
+        />
+        <WxQrcodeForm
+          v-else-if="importMethod === 'wxQrcode'"
+          @cancel="showImportForm = false"
+          @ok="showImportForm = false"
+        />
+        <MobileTokenForm
+          v-else-if="importMethod === 'mobile'"
+          @cancel="showImportForm = false"
+          @ok="showImportForm = false"
+        />
+        <BinTokenForm
+          v-else-if="importMethod === 'bin'"
+          @cancel="showImportForm = false"
+          @ok="showImportForm = false"
+        />
+        <SingleBinTokenForm
+          v-else-if="importMethod === 'singlebin'"
+          @cancel="showImportForm = false"
+          @ok="showImportForm = false"
+        />
+      </template>
+    </WorkspaceAccountManager>
+
+    <n-modal
+      v-model:show="showEditModal"
+      preset="card"
+      title="编辑游戏账号"
+      style="width: min(500px, calc(100vw - 32px))"
+    >
+      <n-form
+        ref="editFormRef"
+        :model="editForm"
+        :rules="editRules"
+        label-placement="top"
+      >
+        <n-form-item label="名称" path="name"><n-input v-model:value="editForm.name" /></n-form-item>
+        <n-form-item label="Token字符串" path="token">
+          <n-input v-model:value="editForm.token" type="textarea" :rows="3" placeholder="粘贴Token字符串..." clearable />
+        </n-form-item>
+        <n-form-item label="服务器"><n-input v-model:value="editForm.server" /></n-form-item>
+        <n-form-item label="WebSocket地址"><n-input v-model:value="editForm.wsUrl" /></n-form-item>
+        <n-form-item label="备注"><n-input v-model:value="editForm.remark" type="textarea" :rows="2" placeholder="添加备注信息..." /></n-form-item>
+      </n-form>
+      <template #footer>
+        <div class="modal-actions">
+          <n-button @click="showEditModal = false">取消</n-button>
+          <n-button type="primary" @click="saveEdit">保存</n-button>
+        </div>
+      </template>
+    </n-modal>
+  </div>
+
+  <div v-else class="token-import-page">
+
     <div class="container">
       <!-- 页面头部 -->
       <div class="page-header">
         <div class="header-content">
           <div class="header-top">
             <img src="/icons/xiaoyugan.png" alt="XYZW" class="brand-logo" />
-            <!-- 主题切换按钮 -->
-            <ThemeToggle />
+            <div class="header-top-actions">
+              <router-link
+                to="/app"
+                class="server-console-btn"
+                aria-label="打开所有功能"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" class="server-console-btn__icon">
+                  <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                </svg>
+                <span>所有功能</span>
+              </router-link>
+              <button
+                type="button"
+                class="server-console-btn"
+                @click="workspaceNavigation.push('/server')"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  class="server-console-btn__icon"
+                >
+                  <rect x="3" y="4" width="18" height="6" rx="2" />
+                  <rect x="3" y="14" width="18" height="6" rx="2" />
+                  <circle cx="7" cy="7" r="1" />
+                  <circle cx="7" cy="17" r="1" />
+                </svg>
+                <span>服务器托管</span>
+              </button>
+              <!-- 主题切换按钮 -->
+              <ThemeToggle />
+            </div>
           </div>
           <h1>游戏Token管理</h1>
         </div>
@@ -675,8 +821,7 @@
         ref="editFormRef"
         :model="editForm"
         :rules="editRules"
-        label-placement="left"
-        label-width="80px"
+        label-placement="top"
       >
         <n-form-item label="名称" path="name">
           <n-input v-model:value="editForm.name" />
@@ -737,6 +882,7 @@ import lz4 from "lz4js";
 import { NAlert, NIcon, useDialog, useMessage } from "naive-ui";
 import { computed, h, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
+import { useWorkspaceNavigation } from "@/composables/useWorkspaceNavigation";
 import useIndexedDB from "@/hooks/useIndexedDB";
 
 import { $emit } from "@/stores/events/index.ts";
@@ -764,6 +910,7 @@ import ManualTokenForm from "./ManualTokenForm.vue";
 import MobileTokenForm from "./MobileTokenForm.vue";
 import SingleBinTokenForm from "./SingleBinTokenForm.vue";
 import UrlTokenForm from "./UrlTokenForm.vue";
+import WorkspaceAccountManager from "./WorkspaceAccountManager.vue";
 import WxQrcodeForm from "./WxQrcodeForm.vue";
 // 接收路由参数
 const props = defineProps({
@@ -773,9 +920,11 @@ const props = defineProps({
   wsUrl: String,
   api: String,
   auto: Boolean,
+  embedded: Boolean,
 });
 const { getArrayBuffer, storeArrayBuffer, deleteArrayBuffer } = useIndexedDB();
 const router = useRouter();
+const workspaceNavigation = useWorkspaceNavigation(router);
 const message = useMessage();
 const dialog = useDialog();
 const tokenStore = useTokenStore();
@@ -799,6 +948,8 @@ const viewMode = ref(localStorage.getItem("tokenViewMode") || "list");
 const dragIndex = ref(null);
 const multiGameSelectedTokenIds = ref(new Set());
 const isOpeningMultiGame = ref(false);
+const hostedSyncedRoleIds = ref(new Set());
+const syncingHostedTokens = ref(new Set());
 
 // 备注编辑状态管理
 const editingRemark = ref(null); // 当前正在编辑备注的tokenId
@@ -973,6 +1124,7 @@ const editRules = {
 };
 
 const bulkOptions = [
+  { label: "批量同步到云端托管", key: "syncHostedAll" },
   { label: "刷新所有Token", key: "refreshAll" },
   { label: "更新token信息", key: "updateInfo" },
   { label: "导出所有Token", key: "export" },
@@ -981,6 +1133,20 @@ const bulkOptions = [
   { label: "断开所有连接", key: "disconnect" },
   { label: "清除所有Token", key: "clear" },
 ];
+
+const isTokenLongTerm = (token) =>
+  ["url", "bin", "wxQrcode", "mobile", "wxForceLogout"].includes(
+    token.importMethod,
+  ) || Boolean(token.upgradedToPermanent);
+
+const handleTokenGroupMembership = (groupId, tokenId, checked) => {
+  if (checked) tokenStore.addTokenToGroup(groupId, tokenId);
+  else tokenStore.removeTokenFromGroup(groupId, tokenId);
+};
+
+const updateRemark = (tokenId, value) => {
+  tempRemarks.value[tokenId] = value;
+};
 
 /**
  * 手动打开Token管理卡片
@@ -1540,6 +1706,9 @@ const refreshAllTokens = async () => {
 
 const handleBulkAction = (key) => {
   switch (key) {
+    case "syncHostedAll":
+      handleBulkSyncHosted();
+      break;
     case "refreshAll":
       refreshAllTokens();
       break;
@@ -1563,6 +1732,145 @@ const handleBulkAction = (key) => {
       break;
   }
 };
+
+function toBase64(buffer) {
+  let binary = "";
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+async function loadHostedAccounts() {
+  try {
+    const res = await fetch("/api/server/accounts", {
+      credentials: "same-origin",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const set = new Set();
+      (data.accounts || []).forEach((acc) => {
+        if (acc.roleId) set.add(acc.roleId);
+        if (acc.sourceLocalId) set.add(acc.sourceLocalId);
+      });
+      hostedSyncedRoleIds.value = set;
+    }
+  } catch {}
+}
+
+async function handleSyncHosted(token) {
+  if (!token || syncingHostedTokens.value.has(token.id)) return;
+  syncingHostedTokens.value.add(token.id);
+  try {
+    const meRes = await fetch("/api/server/auth/me", {
+      credentials: "same-origin",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    });
+    if (!meRes.ok) {
+      message.warning("请先在「托管」页面登录服务器账号，然后再同步");
+      return;
+    }
+    let bin = null;
+    try {
+      const data = await getArrayBuffer(token.id);
+      if (data) bin = toBase64(data);
+    } catch {}
+    const res = await fetch("/api/server/accounts/import", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      body: JSON.stringify({
+        accounts: [
+          {
+            name: token.name,
+            server: token.server || "",
+            roleId: token.roleId || "",
+            roleToken: token.token,
+            binBase64: bin || undefined,
+            sourceLocalId: token.id,
+          },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || "同步失败");
+    }
+    if (token.roleId) hostedSyncedRoleIds.value.add(token.roleId);
+    hostedSyncedRoleIds.value.add(token.id);
+    message.success(`角色「${token.name}」已成功同步至云端托管！`);
+  } catch (e) {
+    message.error(e.message || "同步到云端托管失败");
+  } finally {
+    syncingHostedTokens.value.delete(token.id);
+  }
+}
+
+async function handleBulkSyncHosted() {
+  const selectedIds = [...multiGameSelectedTokenIds.value];
+  const targetTokens = tokenStore.gameTokens.filter((t) =>
+    selectedIds.length ? selectedIds.includes(t.id) : true,
+  );
+  if (!targetTokens.length) {
+    message.info("暂无角色可同步");
+    return;
+  }
+  try {
+    const meRes = await fetch("/api/server/auth/me", {
+      credentials: "same-origin",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    });
+    if (!meRes.ok) {
+      message.warning("请先在「托管」页面登录服务器账号，然后再同步");
+      return;
+    }
+    const payload = [];
+    for (const token of targetTokens) {
+      syncingHostedTokens.value.add(token.id);
+      let bin = null;
+      try {
+        const data = await getArrayBuffer(token.id);
+        if (data) bin = toBase64(data);
+      } catch {}
+      payload.push({
+        name: token.name,
+        server: token.server || "",
+        roleId: token.roleId || "",
+        roleToken: token.token,
+        binBase64: bin || undefined,
+        sourceLocalId: token.id,
+      });
+    }
+    const res = await fetch("/api/server/accounts/import", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      body: JSON.stringify({ accounts: payload }),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || "批量同步失败");
+    }
+    targetTokens.forEach((t) => {
+      if (t.roleId) hostedSyncedRoleIds.value.add(t.roleId);
+      hostedSyncedRoleIds.value.add(t.id);
+    });
+    message.success(`已成功批量同步 ${payload.length} 个角色至云端托管！`);
+  } catch (e) {
+    message.error(e.message || "批量同步到云端托管失败");
+  } finally {
+    targetTokens.forEach((t) => syncingHostedTokens.value.delete(t.id));
+  }
+}
 
 const exportTokens = () => {
   try {
@@ -1723,11 +2031,15 @@ const formatTime = (timestamp) => {
 };
 
 const goToDashboard = () => {
-  router.push("/admin/batch-daily-tasks");
+  workspaceNavigation.push("/admin/batch-daily-tasks");
+};
+
+const goToGameFeatures = () => {
+  workspaceNavigation.push("/admin/game-features");
 };
 
 const goToPushingLevels = () => {
-  router.push("/admin/PushingLevels");
+  workspaceNavigation.push("/admin/PushingLevels");
 };
 
 // ============ BIN 格式转换（来自 convertBin.mjs） ============
@@ -1814,7 +2126,7 @@ async function openSelectedGames() {
       const failedNames = failures.map((failure) => failure.name).join("、");
       message.warning(`已跳过 ${failures.length} 个账号：${failedNames}`);
     }
-    await router.push("/multi-game");
+    await workspaceNavigation.push("/multi-game");
   } catch (error) {
     console.error("Batch game launch failed:", error);
     message.error("批量进入游戏失败，请重试");
@@ -1856,7 +2168,7 @@ const openGame = async () => {
     });
     localStorage.setItem("bin_file_list", JSON.stringify(binList));
   }
-  router.push("/game");
+  workspaceNavigation.push("/game");
 };
 
 // 开始任务管理 - 直接跳转到控制台
@@ -1865,7 +2177,7 @@ const startTaskManagement = (token) => {
   tokenStore.selectToken(token.id);
   // 直接跳转到控制台，不等待连接
   message.success(`正在进入 ${token.name} 的控制台`);
-  router.push("/admin/dashboard");
+  workspaceNavigation.push("/admin/dashboard");
 };
 
 // URL参数处理函数
@@ -1936,11 +2248,11 @@ const handleUrlParams = async () => {
           tokenStore.selectToken(tokenResult.token.id);
           message.success("正在跳转到控制台...");
           setTimeout(() => {
-            router.push("/admin/dashboard");
+            workspaceNavigation.push("/admin/dashboard");
           }, 1500);
         } else {
           // 清除URL参数，避免重复处理
-          router.replace("/tokens");
+          workspaceNavigation.replace("/tokens");
         }
       } else {
         throw new Error(tokenResult?.message || "Token导入失败");
@@ -1949,7 +2261,7 @@ const handleUrlParams = async () => {
       console.error("URL参数处理失败:", error);
       message.error(`导入失败: ${error.message}`);
       // 清除URL参数
-      router.replace("/tokens");
+      workspaceNavigation.replace("/tokens");
     } finally {
       isImporting.value = false;
     }
@@ -1968,6 +2280,7 @@ const handleRateLimitWaiting = (data) => {
 // 生命周期
 onMounted(async () => {
   tokenStore.initTokenStore();
+  void loadHostedAccounts();
 
   // 监听限流等待事件
   $emit.on("token:refresh:waiting", handleRateLimitWaiting);
@@ -1976,7 +2289,7 @@ onMounted(async () => {
   await handleUrlParams();
 
   // 如果没有token且没有URL参数，显示导入表单
-  if (!tokenStore.hasTokens && !props.token && !props.api) {
+  if (!props.embedded && !tokenStore.hasTokens && !props.token && !props.api) {
     showImportForm.value = true;
   }
 });
@@ -2028,9 +2341,59 @@ onUnmounted(() => {
   justify-content: center;
 }
 
-.theme-toggle {
+.header-top-actions {
   position: absolute;
   right: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.server-console-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.55);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.server-console-btn__icon {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.theme-toggle {
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -2629,9 +2992,31 @@ onUnmounted(() => {
   justify-content: flex-end;
 }
 
+.token-import-page--embedded {
+  min-height: 0;
+  padding: 0;
+  background: #f3f6fb;
+}
+.token-import-page--embedded .page-header {
+  display: none;
+}
+.token-import-page--embedded .container {
+  max-width: none;
+  padding: 0;
+}
 @media (max-width: 768px) {
   .container {
     padding: 0 var(--spacing-md);
+  }
+
+  .header-top {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .header-top-actions {
+    position: static;
+    justify-content: center;
   }
 
   .tokens-grid {

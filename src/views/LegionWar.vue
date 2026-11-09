@@ -1,5 +1,5 @@
 <template>
-  <div class="legion-war-container">
+  <div class="legion-war-container" :class="{ 'legion-war-container--embedded': props.embedded }">
     <div class="legion-war-map">
       <div class="map-title">
         <div class="map-title-item">战场图示</div>
@@ -70,6 +70,8 @@
 import { useMessage } from "naive-ui";
 
 import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import { useWorkspaceNavigation } from "@/composables/useWorkspaceNavigation";
 import { useTokenStore } from "@/stores/tokenStore";
 import { getCurrentTimeByFormat } from "@/utils/DateTimeUtils";
 
@@ -82,6 +84,9 @@ import {
 } from "@/utils/legionWar";
 import { XyzwLegionWarWebSocketClient } from "@/utils/xyzwLegionWarWebSocket";
 
+const props = defineProps({ embedded: Boolean });
+const router = useRouter();
+const workspaceNavigation = useWorkspaceNavigation(router);
 const tokenStore = useTokenStore();
 const message = useMessage();
 
@@ -735,7 +740,7 @@ function resizeAndRedraw(canvas) {
 const connectWebSocket = () => {
   if (!tokenStore.selectedToken) {
     message.warning("请先选择一个Token");
-    router.push("/tokens");
+    workspaceNavigation.push("/tokens");
     return;
   }
 
@@ -986,5 +991,13 @@ onUnmounted(() => {
       }
     }
   }
+}
+</style>
+
+<style scoped>
+.legion-war-container--embedded {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="game-features-page">
+  <div class="game-features-page" :class="{ 'game-features-page--embedded': props.embedded }">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="container">
@@ -29,12 +29,22 @@
     <!-- 功能模块网格 -->
     <div class="features-grid-section">
       <div class="container">
-        <GameStatus />
+        <GameStatus v-if="!props.embedded || isConnected" />
+        <section v-else class="embedded-game-offline" aria-live="polite">
+          <div class="embedded-game-offline__mark" aria-hidden="true">!</div>
+          <div>
+            <h2>当前角色尚未连接</h2>
+            <p>{{ isConnecting ? "正在连接角色…" : "连接角色后即可使用日常、俱乐部和其他游戏功能。" }}</p>
+          </div>
+          <button type="button" :disabled="isConnecting" @click="toggleConnection">
+            {{ isConnecting ? "正在连接…" : "重新连接" }}
+          </button>
+        </section>
       </div>
     </div>
 
-    <!-- WebSocket 连接状态 -->
-    <div class="ws-status-section">
+    <!-- WebSocket 连接状态（独立页面展示；内嵌工作区已由顶栏展示状态） -->
+    <div v-if="!props.embedded" class="ws-status-section">
       <div class="container">
         <div class="ws-status-card">
           <div class="status-header">
@@ -68,9 +78,12 @@ import { CloudDone } from "@vicons/ionicons5";
 import { useMessage } from "naive-ui";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
+import { useWorkspaceNavigation } from "@/composables/useWorkspaceNavigation";
 import { useTokenStore } from "@/stores/tokenStore";
 
+const props = defineProps({ embedded: Boolean });
 const router = useRouter();
+const workspaceNavigation = useWorkspaceNavigation(router);
 const message = useMessage();
 const tokenStore = useTokenStore();
 
@@ -97,8 +110,10 @@ const connectionClass = computed(() => {
     : "status-disconnected";
 });
 
-const isConnected = computed(() => {
-  return connectionStatus.value === "connected";
+const isConnected = computed(() => connectionStatus.value === "connected");
+const isConnecting = computed(() => {
+  if (!tokenStore.selectedToken) return false;
+  return tokenStore.getWebSocketStatus(tokenStore.selectedToken.id) === "connecting";
 });
 
 // 方法
@@ -108,7 +123,7 @@ const isConnected = computed(() => {
 const connectWebSocket = () => {
   if (!tokenStore.selectedToken) {
     message.warning("请先选择一个Token");
-    router.push("/tokens");
+    workspaceNavigation.push("/tokens");
     return;
   }
 
@@ -117,7 +132,7 @@ const connectWebSocket = () => {
     const token = tokenStore.selectedToken.token;
 
     // 使用 tokenStore 的 WebSocket 连接管理
-    tokenStore.createWebSocketConnection(tokenId, token);
+    tokenStore.createWebSocketConnection(tokenId, token, tokenStore.selectedToken.wsUrl);
     message.info("正在建立 WebSocket 连接...");
 
     // 等待连接建立
@@ -192,7 +207,7 @@ watch(
           return;
         }
         message.error("当前 Token 已过期，请重新导入后再试");
-        router.push("/tokens");
+        workspaceNavigation.push("/tokens");
       }
     }
   },
@@ -250,6 +265,77 @@ onUnmounted(() => {
   padding: 0 var(--spacing-lg);
 }
 
+.game-features-page.game-features-page--embedded {
+  min-height: 0;
+  padding-bottom: 12px;
+  color: #15253f;
+  background: #f3f6fb;
+  --bg-color: #f3f6fb;
+  --font-color: #6e7c92;
+  --text-color: #15253f;
+  --border-color: #e4ebf4;
+}
+.embedded-game-offline {
+  display: flex;
+  min-height: 190px;
+  align-items: center;
+  gap: 14px;
+  padding: 22px;
+  border: 1px solid #e4ebf4;
+  border-radius: 14px;
+  color: #15253f;
+  background: #ffffff;
+}
+.embedded-game-offline__mark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  color: #2563eb;
+  background: #edf3ff;
+  font-size: 19px;
+  font-weight: 700;
+}
+.embedded-game-offline h2 { margin: 0; font-size: 16px; }
+.embedded-game-offline p { margin: 4px 0 0; color: #6e7c92; font-size: 13px; line-height: 1.45; }
+.embedded-game-offline button {
+  min-height: 44px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  color: #fff;
+  background: #2563eb;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+.embedded-game-offline button:disabled { opacity: .6; cursor: wait; }
+@media (max-width: 520px) {
+  .embedded-game-offline { align-items: flex-start; flex-wrap: wrap; padding: 16px; }
+  .embedded-game-offline button { margin-left: 52px; }
+}
+.game-features-page--embedded .page-header {
+  display: none;
+}
+.game-features-page--embedded .feedback-section {
+  display: none;
+}
+.game-features-page--embedded .features-grid-section {
+  padding: 0;
+}
+.game-features-page--embedded .features-grid-section .container,
+.game-features-page--embedded .ws-status-section .container {
+  max-width: none;
+  padding-right: 0;
+  padding-left: 0;
+}
+.game-features-page--embedded .ws-status-section {
+  margin-top: 12px;
+}
 @media (max-width: 768px) {
   .container {
     padding: 0 var(--spacing-md);
@@ -589,4 +675,64 @@ onUnmounted(() => {
     gap: var(--spacing-sm);
   }
 }
+
+.game-features-page--embedded :deep(.game-status-container),
+.game-features-page--embedded :deep(.status-card),
+.game-features-page--embedded :deep(.card-content),
+.game-features-page--embedded :deep(.status-title) {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.game-features-page--embedded :deep(.status-card) {
+  width: 100%;
+}
+
+.game-features-page--embedded :deep(.card-header) {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.game-features-page--embedded :deep(.status-title) {
+  flex: 1 1 140px;
+  overflow-wrap: anywhere;
+}
+
+.game-features-page--embedded :deep(.toolbar),
+.game-features-page--embedded :deep(.team-selector),
+.game-features-page--embedded :deep(.card-action),
+.game-features-page--embedded :deep(.card-actions),
+.game-features-page--embedded :deep(.card-actions .action-row) {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.game-features-page--embedded :deep(.toolbar > *),
+.game-features-page--embedded :deep(.card-action > *),
+.game-features-page--embedded :deep(.card-actions > *) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.game-features-page--embedded :deep(.status-badge) {
+  flex: 0 1 auto;
+  max-width: 100%;
+  white-space: normal;
+}
+
+@media (max-width: 600px) {
+  .game-features-page--embedded :deep(.status-title) {
+    flex-basis: 100%;
+  }
+
+  .game-features-page--embedded :deep(.toolbar) {
+    align-items: flex-start;
+  }
+}
+
 </style>

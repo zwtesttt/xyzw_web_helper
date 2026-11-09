@@ -3,6 +3,8 @@
  * 用于一键答题功能，从公共目录读取题目数据
  */
 
+import { matchStudyQuestion } from "./serverStudyMatcher.js";
+
 const queryPromise = (async () => {
   // Try loading from the app base URL first (supports Vite `base` config / GitHub Pages subpaths),
   // then fall back to common locations.
@@ -72,18 +74,7 @@ export async function loadQuestionsData() {
  * @returns {boolean} - 是否匹配
  */
 export function matchQuestion(questionFromDB, actualQuestion, threshold = 1) {
-  if (!questionFromDB || !actualQuestion) return false;
-
-  // 简单的包含匹配
-  if (threshold === 1) {
-    // 去除空格和特殊字符进行匹配
-    const cleanDB = questionFromDB.replace(/\s+/g, "").toLowerCase();
-    const cleanActual = actualQuestion.replace(/\s+/g, "").toLowerCase();
-
-    return cleanActual.includes(cleanDB) || cleanDB.includes(cleanActual);
-  }
-
-  return false;
+  return threshold === 1 && matchStudyQuestion(questionFromDB, actualQuestion);
 }
 
 /**

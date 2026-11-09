@@ -78,15 +78,19 @@ import MyCard from "../Common/MyCard.vue";
 const tokenStore = useTokenStore();
 const message = useMessage();
 
-const HeroOptions = computed(() => [
-  ...Object.values(tokenStore.gameData.roleInfo.role.heroes).map((item) => {
-    return {
+const heroes = computed(
+  () => tokenStore.gameData?.roleInfo?.role?.heroes ?? {},
+);
+
+const HeroOptions = computed(() =>
+  Object.values(heroes.value)
+    .filter((item) => item && HERO_DICT[item.heroId])
+    .map((item) => ({
       label: `${HERO_DICT[item.heroId].name}(${item.level}/6000)`,
       value: item.heroId,
       disabled: isSameGameValue(item.level, 6000),
-    };
-  }),
-]);
+    })),
+);
 
 const HeroValue = ref(null);
 const HeroItem = ref(null);
@@ -101,11 +105,10 @@ const state = ref({
 });
 
 const handleUpdateValue = (value) => {
-  HeroItem.value = Object.assign(
-    {},
-    tokenStore.gameData.roleInfo.role.heroes[value],
-    HERO_DICT[value],
-  );
+  const hero = heroes.value[value];
+  const heroDetails = HERO_DICT[value];
+  HeroItem.value =
+    hero && heroDetails ? Object.assign({}, hero, heroDetails) : null;
 };
 
 const levelOptions = [
@@ -128,26 +131,21 @@ const levelOptions = [
 ];
 
 watch(
-  () => tokenStore.gameData.roleInfo.heroes,
-  () => {
-    if (HeroValue.value) {
-      if (
-        !isSameGameValue(
-          tokenStore.gameData.roleInfo.role.heroes[HeroValue.value].level,
-          6000,
-        )
-      ) {
-        HeroItem.value = Object.assign(
-          {},
-          tokenStore.gameData.roleInfo.role.heroes[HeroValue.value],
-          HERO_DICT[HeroValue.value],
-        );
-      } else {
-        HeroItem.value = null;
-      }
+  heroes,
+  (availableHeroes) => {
+    if (!HeroValue.value) return;
+
+    const hero = availableHeroes?.[HeroValue.value];
+    const heroDetails = HERO_DICT[HeroValue.value];
+    if (!hero || !heroDetails || isSameGameValue(hero.level, 6000)) {
+      HeroItem.value = null;
+      if (!hero || !heroDetails) HeroValue.value = null;
+      return;
     }
+
+    HeroItem.value = Object.assign({}, hero, heroDetails);
   },
-  { deep: true }, // 深度监听内部变化
+  { deep: true },
 );
 
 //英雄进阶

@@ -36,14 +36,17 @@
       </div>
 
       <div class="function-right">
-        <a-date-picker
-          v-model:value="queryDate"
-          @change="fetchBattleRecordsByDate"
-          value-format="YYYY/MM/DD"
-          :disabled-date="disabledDate"
-          :default-value="queryDate"
-          format="YYYY/MM/DD"
-        />
+        <label class="date-picker-control">
+          <span>查询日期</span>
+          <a-date-picker
+            v-model:value="queryDate"
+            @change="fetchBattleRecordsByDate"
+            value-format="YYYY/MM/DD"
+            :disabled-date="disabledDate"
+            :default-value="queryDate"
+            format="YYYY/MM/DD"
+          />
+        </label>
         <n-button
           size="small"
           :disabled="loading"
@@ -60,7 +63,7 @@
         <n-button
           type="primary"
           size="small"
-          :disabled="!battleRecords || loading"
+          :disabled="!hasExportData || loading"
           @click="handleExport"
           class="action-btn export-btn"
         >
@@ -69,9 +72,11 @@
               <Copy />
             </n-icon>
           </template>
-          导出
+          导出战绩
         </n-button>
       </div>
+      <p v-if="loading" class="export-status" role="status">战绩数据加载中…</p>
+      <p v-else-if="!hasExportData" class="export-status">暂无战绩可导出</p>
     </div>
 
     <div class="battle-records-content">
@@ -1279,11 +1284,14 @@ import { Copy, DocumentText, Refresh } from "@vicons/ionicons5";
 
 import html2canvas from "html2canvas";
 import { NRadioButton, NRadioGroup, useMessage } from "naive-ui";
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useTokenStore } from "@/stores/tokenStore";
 import { isSameGameValue } from "@/utils/gameValue.js";
 
-import { downloadCanvasAsImage } from "@/utils/imageExport";
+import {
+  downloadCanvasAsImage,
+  getBattleReportCaptureOptions,
+} from "@/utils/imageExport";
 
 // 获取最近的周日日期
 // 如果今天是周日，返回今天的日期；否则返回上周日的日期
@@ -1332,6 +1340,14 @@ const tokenStore = useTokenStore();
 
 const loading = ref(false);
 const battleRecords = ref(null);
+const hasExportData = computed(() => {
+  const { ownClub, opponentClub } = battleRecords.value || {};
+  return [ownClub, opponentClub].some(
+    (club) =>
+      (Number(club?.memberCount) || 0) > 0 ||
+      (club?.killRank?.length || 0) > 0,
+  );
+});
 
 const queryDate = ref(getLastSunday());
 
@@ -1678,12 +1694,10 @@ const exportToImage = async () => {
     });
 
     // 5. 用html2canvas渲染DOM为Canvas
-    const canvas = await html2canvas(exportDom.value, {
-      scale: 2, // 放大2倍，解决图片模糊问题
-      useCORS: true, // 允许跨域图片（若DOM内有远程图片，需开启）
-      backgroundColor: "#ffffff", // 避免透明背景（默认透明）
-      logging: false, // 关闭控制台日志
-    });
+    const canvas = await html2canvas(
+      exportDom.value,
+      getBattleReportCaptureOptions(),
+    );
 
     // 恢复战神榜内容区域的原始样式
     originalStyles.forEach(({ element, maxHeight, overflow }) => {
@@ -2885,4 +2899,149 @@ onMounted(() => {
 .opponent-column.style-2 .summary-title {
   background: #e53935;
 }
+
+
+.date-picker-control {
+  display: inline-flex;
+  align-items: center;
+}
+
+.date-picker-control > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.export-status {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .records-container {
+    height: auto;
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .header-section {
+    padding: var(--spacing-md);
+  }
+
+  .header-title h2 {
+    font-size: var(--font-size-lg);
+  }
+
+  .header-title p {
+    display: none;
+  }
+
+  .function-section {
+    width: 100%;
+    min-width: 0;
+    padding: var(--spacing-md);
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .function-section .function-left,
+  .function-section .function-right {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .function-section .export-options {
+    flex-wrap: wrap;
+    row-gap: var(--spacing-sm);
+  }
+
+  .function-section .function-right {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-sm);
+  }
+
+  .date-picker-control > span {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    align-self: flex-start;
+  }
+
+  .date-picker-control {
+    display: flex;
+    grid-column: 1 / -1;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+  }
+
+  .function-section .function-right :deep(.arco-picker) {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .function-section .action-btn {
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+  }
+
+  .export-status {
+    display: block;
+    width: 100%;
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+  }
+
+  .battle-records-content {
+    flex: none;
+    min-width: 0;
+    min-height: 0;
+    overflow: visible;
+    padding: var(--spacing-sm);
+  }
+
+  .god-ranking-content {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .records-wrapper,
+  .records-list {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .style1-table-container,
+  .style2-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+
+  .style1-table,
+  .style2-table {
+    width: max-content;
+    min-width: 100%;
+  }
+}
+
 </style>

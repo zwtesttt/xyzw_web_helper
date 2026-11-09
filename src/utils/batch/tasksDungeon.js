@@ -1,4 +1,4 @@
-import { isDungeonOpen, merchantConfig } from "@/utils/dreamConstants";
+import { isDungeonOpen, merchantConfig } from "../dreamConstants.js";
 
 /**
  * 宝库、梦境类任务
@@ -11,6 +11,9 @@ import { isDungeonOpen, merchantConfig } from "@/utils/dreamConstants";
  * @returns {object} 任务函数集合
  */
 export function createTasksDungeon(deps) {
+  const sleep = deps.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const clockNow = deps.now || (() => new Date());
+  const logError = deps.onError || ((...args) => globalThis.console.error(...args));
   const {
     selectedTokens,
     tokens,
@@ -45,7 +48,7 @@ export function createTasksDungeon(deps) {
       const token = tokens.value.find((t) => t.id === tokenId);
       try {
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `=== 开始一键宝库: ${token.name} ===`,
           type: "info",
         });
@@ -64,7 +67,7 @@ export function createTasksDungeon(deps) {
               "bosstower_startboss",
               {},
             );
-            await new Promise((r) => setTimeout(r, 500));
+            await sleep(500);
           }
           for (let i = 0; i < 9; i++) {
             if (shouldStop.value) break;
@@ -73,20 +76,20 @@ export function createTasksDungeon(deps) {
               "bosstower_startbox",
               {},
             );
-            await new Promise((r) => setTimeout(r, 500));
+            await sleep(500);
           }
         }
         tokenStatus.value[tokenId] = "completed";
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `=== ${token.name} 宝库战斗已完成，请上线手动领取奖励 ===`,
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 宝库战斗失败: ${error.message || "未知错误"}`,
           type: "error",
         });
@@ -94,7 +97,7 @@ export function createTasksDungeon(deps) {
         tokenStore.closeWebSocketConnection(tokenId);
         releaseConnectionSlot();
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 连接已关闭  (队列: ${connectionQueue.active}/${batchSettings.maxActive})`,
           type: "info",
         });
@@ -125,7 +128,7 @@ export function createTasksDungeon(deps) {
       const token = tokens.value.find((t) => t.id === tokenId);
       try {
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `=== 开始一键宝库: ${token.name} ===`,
           type: "info",
         });
@@ -144,20 +147,20 @@ export function createTasksDungeon(deps) {
               "bosstower_startboss",
               {},
             );
-            await new Promise((r) => setTimeout(r, 500));
+            await sleep(500);
           }
         }
         tokenStatus.value[tokenId] = "completed";
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `=== ${token.name} 宝库战斗已完成 ===`,
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 宝库战斗失败: ${error.message || "未知错误"}`,
           type: "error",
         });
@@ -165,7 +168,7 @@ export function createTasksDungeon(deps) {
         tokenStore.closeWebSocketConnection(tokenId);
         releaseConnectionSlot();
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 连接已关闭  (队列: ${connectionQueue.active}/${batchSettings.maxActive})`,
           type: "info",
         });
@@ -196,45 +199,39 @@ export function createTasksDungeon(deps) {
       const token = tokens.value.find((t) => t.id === tokenId);
       try {
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `=== 开始咸王梦境: ${token.name} ===`,
           type: "info",
         });
         await ensureConnection(tokenId);
         if (shouldStop.value) return;
         const mjbattleTeam = { 0: 107 };
-        const dayOfWeek = new Date().getDay();
-        if (
-          dayOfWeek === 0 ||
-          dayOfWeek === 1 ||
-          dayOfWeek === 3 ||
-          dayOfWeek === 4
-        ) {
+        if (isDungeonOpen(clockNow())) {
           await tokenStore.sendMessageWithPromise(
             tokenId,
             "dungeon_selecthero",
             { battleTeam: mjbattleTeam },
             5000,
           );
-          await new Promise((r) => setTimeout(r, 500));
+          await sleep(500);
           tokenStatus.value[tokenId] = "completed";
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `=== ${token.name} 咸王梦境已完成 ===`,
             type: "success",
           });
         } else {
           addLog({
-            time: new Date().toLocaleTimeString(),
+            time: clockNow().toLocaleTimeString(),
             message: `=== ${token.name} 当前未在开放时间 ===`,
             type: "error",
           });
         }
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 咸王梦境失败: ${error.message || "未知错误"}`,
           type: "error",
         });
@@ -242,7 +239,7 @@ export function createTasksDungeon(deps) {
         tokenStore.closeWebSocketConnection(tokenId);
         releaseConnectionSlot();
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 连接已关闭  (队列: ${connectionQueue.active}/${batchSettings.maxActive})`,
           type: "info",
         });
@@ -261,7 +258,7 @@ export function createTasksDungeon(deps) {
   const batchBuyDreamItems = async () => {
     if (selectedTokens.value.length === 0) return;
 
-    if (!isDungeonOpen()) {
+    if (!isDungeonOpen(clockNow())) {
       message.warning("当前不是梦境开放时间（周三/周四/周日/周一）");
       return;
     }
@@ -285,7 +282,7 @@ export function createTasksDungeon(deps) {
       const token = tokens.value.find((t) => t.id === tokenId);
       try {
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `=== 开始梦境购买: ${token.name} ===`,
           type: "info",
         });
@@ -343,7 +340,7 @@ export function createTasksDungeon(deps) {
 
           if (levelId < 4000) {
             addLog({
-              time: new Date().toLocaleTimeString(),
+              time: clockNow().toLocaleTimeString(),
               message: `${token.name} 关卡数小于4000，无法购买`,
               type: "warning",
             });
@@ -374,7 +371,7 @@ export function createTasksDungeon(deps) {
                   : `商品${op.index}`;
 
               addLog({
-                time: new Date().toLocaleTimeString(),
+                time: clockNow().toLocaleTimeString(),
                 message: `${token.name} 购买成功: ${merchantName} - ${itemName}`,
                 type: "success",
               });
@@ -384,20 +381,20 @@ export function createTasksDungeon(deps) {
           } catch (err) {
             failCount++;
           }
-          await new Promise((r) => setTimeout(r, 500));
+          await sleep(500);
         }
 
         tokenStatus.value[tokenId] = "completed";
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `=== ${token.name} 梦境购买完成: 成功${successCount}, 失败${failCount} ===`,
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 梦境购买失败: ${error.message || "未知错误"}`,
           type: "error",
         });
@@ -405,7 +402,7 @@ export function createTasksDungeon(deps) {
         tokenStore.closeWebSocketConnection(tokenId);
         releaseConnectionSlot();
         addLog({
-          time: new Date().toLocaleTimeString(),
+          time: clockNow().toLocaleTimeString(),
           message: `${token.name} 连接已关闭  (队列: ${connectionQueue.active}/${batchSettings.maxActive})`,
           type: "info",
         });

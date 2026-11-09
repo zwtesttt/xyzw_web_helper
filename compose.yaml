@@ -1,0 +1,43 @@
+services:
+  hosted-backend:
+    image: 129.146.181.197:8888/xyzw/xyzw_web_helper_backend:latest
+    build:
+      context: .
+      dockerfile: render-backend/Dockerfile
+    environment:
+      PORT: "3000"
+      DATA_DIR: /data
+      TZ: Asia/Shanghai
+      HOSTED_TASK_CONCURRENCY: ${HOSTED_TASK_CONCURRENCY:-5}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    volumes:
+      - hosted_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  web:
+    image: 129.146.181.197:8888/xyzw/xyzw_web_helper:latest
+    build:
+      context: .
+      dockerfile: docker/dockerfile
+    ports:
+      - "${PORT:-8080}:80"
+    depends_on:
+      hosted-backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
+volumes:
+  hosted_data:

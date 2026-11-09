@@ -54,12 +54,33 @@
         />
       </div>
 
-      <!-- 提示信息 -->
-      <div class="info-container">右上角小齿轮有惊喜</div>
+      <!-- 实时步骤或待完成任务摘要 -->
+      <div v-if="busy && latestLogMessage" class="live-step-banner">
+        {{ latestLogMessage }}
+      </div>
+      <div v-else-if="isConnected" class="pending-pills" @click="showTaskDetails = true">
+        <span v-if="isFull" class="pending-pill pending-pill--done">
+          🎉 今日日常活跃已满 (100/100)
+        </span>
+        <template v-else-if="pendingTasks.length">
+          <span
+            v-for="t in pendingTasks.slice(0, 4)"
+            :key="t.id"
+            class="pending-pill"
+          >
+            {{ t.shortName }}<template v-if="t.required"> {{ t.progress || 0 }}/{{ t.required }}</template>
+          </span>
+          <span v-if="pendingTasks.length > 4" class="pending-pill pending-pill--more">
+            +{{ pendingTasks.length - 4 }} 项
+          </span>
+        </template>
+        <span v-else class="info-container">点击右上角齿轮可配置补差项</span>
+      </div>
+      <div v-else class="info-container">连接角色后自动同步今日任务进度</div>
     </div>
 
     <!-- 一键执行按钮 -->
-    <div class="card-actions">
+    <div class="card-actions action-row-inline">
       <button
         class="action-button"
         :disabled="busy || !isConnected"
@@ -76,6 +97,14 @@
         </span>
         <span v-else-if="!isConnected">WebSocket未连接</span>
         <span v-else>一键补差</span>
+      </button>
+      <button
+        v-if="logList.length"
+        type="button"
+        class="log-view-button"
+        @click="showLog = true"
+      >
+        日志
       </button>
     </div>
 
@@ -179,6 +208,16 @@
             <div class="switch-row">
               <span class="switch-label">黑市购买物品</span>
               <n-switch v-model:value="settings.blackMarketPurchase" />
+            </div>
+
+            <div class="switch-row">
+              <span class="switch-label">赠送好友金币</span>
+              <n-switch v-model:value="settings.sendFriendGold" />
+            </div>
+
+            <div class="switch-row">
+              <span class="switch-label">免费点金</span>
+              <n-switch v-model:value="settings.buyGold" />
             </div>
 
             <div class="switch-row">
@@ -327,6 +366,8 @@ const settings = reactive({
   claimHangUp: true,
   claimEmail: true,
   blackMarketPurchase: true,
+  buyGold: true,
+  sendFriendGold: true,
   commandDelay: 500,
   taskDelay: 500,
 });
@@ -371,6 +412,17 @@ const roleDailyPoint = computed(() => {
 const dailyPoint = computed(() => Math.min(roleDailyPoint.value, 100));
 const isFull = computed(() => dailyPoint.value >= 100);
 const progressColor = computed(() => (isFull.value ? "#10b981" : "#3b82f6"));
+const pendingTasks = computed(() =>
+  tasks.value
+    .filter((t) => !t.completed)
+    .map((t) => ({
+      ...t,
+      shortName: t.name.replace(/（.*）/, ""),
+    })),
+);
+const latestLogMessage = computed(() =>
+  logList.value.length ? logList.value[logList.value.length - 1].message : "",
+);
 
 // WebSocket连接状态
 const isConnected = computed(() => {
@@ -675,10 +727,71 @@ onBeforeUnmount(() => {
   text-align: center;
 }
 
+.live-step-banner {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #edf3ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 550;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pending-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.pending-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1px solid var(--border-light, #e4ebf4);
+  border-radius: 999px;
+  background: var(--bg-tertiary, #f8fafd);
+  color: var(--text-secondary, #52647d);
+  font-size: 11px;
+  font-weight: 550;
+}
+
+.pending-pill--done {
+  border-color: #cce9d8;
+  background: #f0faf4;
+  color: #18794e;
+}
+
+.pending-pill--more {
+  color: var(--primary-color, #2563eb);
+}
+
 // 使用GameStatus中的统一按钮样式
 .card-actions {
   margin-top: auto;
   padding-top: var(--spacing-sm);
+}
+
+.action-row-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.log-view-button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border-light, #e4ebf4);
+  border-radius: var(--border-radius-medium, 8px);
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-secondary, #52647d);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .status-icon {

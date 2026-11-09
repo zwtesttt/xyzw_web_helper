@@ -33,7 +33,7 @@
           <n-button
             type="primary"
             size="small"
-            :disabled="!monthlyBattleRecords || loading"
+            :disabled="!hasExportData || loading"
             @click="handleExport"
           >
             <template #icon>
@@ -41,9 +41,11 @@
                 <Copy />
               </n-icon>
             </template>
-            导出
+            导出战绩
           </n-button>
         </div>
+        <p v-if="loading" class="export-status" role="status">本月战绩数据加载中…</p>
+        <p v-else-if="!hasExportData" class="export-status">暂无本月战绩可导出</p>
       </div>
 
       <div class="battle-records-content">
@@ -63,7 +65,7 @@
           class="records-list"
         >
           <!-- Default Style -->
-          <div v-if="currentStyle === 'default'">
+          <div v-if="currentStyle === 'default'" class="monthly-default-report">
             <!-- 本月统计概览 -->
             <div class="monthly-stats-overview">
               <div class="stats-header">
@@ -867,7 +869,10 @@ import { NRadioButton, NRadioGroup, useMessage } from "naive-ui";
 import { computed, onMounted, ref, watch } from "vue";
 import { useTokenStore } from "@/stores/tokenStore";
 
-import { downloadCanvasAsImage } from "@/utils/imageExport";
+import {
+  downloadCanvasAsImage,
+  getBattleReportCaptureOptions,
+} from "@/utils/imageExport";
 
 defineProps({
   visible: {
@@ -886,6 +891,11 @@ const tokenStore = useTokenStore();
 
 const loading = ref(false);
 const monthlyBattleRecords = ref({});
+const hasExportData = computed(() =>
+  Object.values(monthlyBattleRecords.value || {}).some(
+    (record) => (record?.roleDetailsList?.length || 0) > 0,
+  ),
+);
 
 const battleDates = ref([]);
 
@@ -1318,12 +1328,10 @@ const exportToImage = async () => {
 
   try {
     // 用html2canvas渲染DOM为Canvas
-    const canvas = await html2canvas(exportDom.value, {
-      scale: 2, // 放大2倍，解决图片模糊问题
-      useCORS: true, // 允许跨域图片（若DOM内有远程图片，需开启）
-      backgroundColor: "#ffffff", // 避免透明背景（默认透明）
-      logging: false, // 关闭控制台日志
-    });
+    const canvas = await html2canvas(
+      exportDom.value,
+      getBattleReportCaptureOptions(),
+    );
 
     // Canvas转图片链接并下载
     const monthYear = currentMonthDisplay.value
@@ -2262,4 +2270,93 @@ onMounted(() => {
     min-width: 120px;
   }
 }
+
+
+.export-status {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .club-month-battle-records-container,
+  .club-month-battle-records-card {
+    height: auto;
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .header-section {
+    padding: var(--spacing-md);
+  }
+
+  .header-title h2 {
+    font-size: var(--font-size-lg);
+  }
+
+  .header-title p {
+    display: none;
+  }
+
+  .header-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    min-width: 0;
+    align-items: stretch;
+  }
+
+  .header-actions :deep(.n-radio-group) {
+    grid-column: 1 / -1;
+    width: fit-content;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .header-actions :deep(.n-button) {
+    min-height: 44px;
+  }
+
+  .export-status {
+    display: block;
+    width: 100%;
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+  }
+
+  .battle-records-content {
+    flex: none;
+    min-width: 0;
+    min-height: 0;
+    overflow: visible;
+    padding: var(--spacing-sm);
+  }
+
+  .records-list,
+  .monthly-default-report,
+  .monthly-stats-overview,
+  .members-list,
+  .stats-header,
+  .stats-grid {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .members-table-wrapper,
+  .style1-table-container,
+  .style2-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+
+  .members-table {
+    width: max-content;
+    min-width: 100%;
+  }
+}
+
 </style>

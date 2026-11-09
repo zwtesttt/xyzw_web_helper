@@ -2,7 +2,7 @@
  * 挂机、答题、签到类任务
  * 包含: claimHangUpRewards, batchAddHangUpTime, batchStudy, batchclubsign
  */
-import { fillHangUpTime, runWithDailyTaskLock } from "@/utils/dailyTaskState";
+import { fillHangUpTime, runWithDailyTaskLock } from "../dailyTaskState.js";
 
 /**
  * 创建挂机、答题、签到类任务执行器
@@ -10,6 +10,8 @@ import { fillHangUpTime, runWithDailyTaskLock } from "@/utils/dailyTaskState";
  * @returns {object} 任务函数集合
  */
 export function createTasksHangUp(deps) {
+  const sleep = deps.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const logError = deps.onError || ((...args) => globalThis.console.error(...args));
   const {
     selectedTokens,
     tokens,
@@ -83,7 +85,7 @@ export function createTasksHangUp(deps) {
                 5000,
               );
               check();
-              await new Promise((resolve) => setTimeout(resolve, 500));
+              await sleep(500);
             }
             const result = await fillHangUpTime({
               tokenStore,
@@ -220,7 +222,7 @@ export function createTasksHangUp(deps) {
             break;
           }
 
-          await new Promise((r) => setTimeout(r, 1000));
+          await sleep(1000);
           maxWait--;
         }
 
@@ -248,7 +250,7 @@ export function createTasksHangUp(deps) {
           }
         }
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -303,7 +305,7 @@ export function createTasksHangUp(deps) {
           {},
           5000,
         );
-        await new Promise((r) => setTimeout(r, 500));
+        await sleep(500);
         tokenStatus.value[tokenId] = "completed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -311,7 +313,7 @@ export function createTasksHangUp(deps) {
           type: "success",
         });
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -481,7 +483,7 @@ export function createTasksHangUp(deps) {
         });
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
-        console.error(error);
+        logError(error);
         const errorMessage = error?.message || "未知错误";
 
         if (
@@ -646,7 +648,7 @@ export function createTasksHangUp(deps) {
           tokenStatus.value[tokenId] = "failed";
         }
       } catch (error) {
-        console.error(error);
+        logError(error);
 
         // Handle specific error: 400000 - Item does not exist (feature locked)
         if (

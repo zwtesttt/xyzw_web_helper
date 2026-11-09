@@ -1,0 +1,1262 @@
+@media (max-width: 768px) {
+  .battle-responsive-page {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page .club-warrank-card,
+  .battle-responsive-page .toolbar,
+  .battle-responsive-page .function-section,
+  .battle-responsive-page .function-left,
+  .battle-responsive-page .function-right,
+  .battle-responsive-page .header-section,
+  .battle-responsive-page .header-left,
+  .battle-responsive-page .header-title,
+  .battle-responsive-page .stats-section,
+  .battle-responsive-page .stat-item,
+  .battle-responsive-page .table-content,
+  .battle-responsive-page .table-container,
+  .battle-responsive-page .main-content,
+  .battle-responsive-page .tab-content,
+  .battle-responsive-page .views-content-wrapper {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page .stats-section,
+  .battle-responsive-page .stat-item {
+    flex-wrap: wrap;
+  }
+
+  .battle-responsive-page .header-section .n-button {
+    min-height: 44px;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .battle-responsive-page .toolbar,
+  .battle-responsive-page .function-section,
+  .battle-responsive-page .header-section {
+    flex-wrap: wrap !important;
+    gap: 8px;
+  }
+
+  .battle-responsive-page .function-left,
+  .battle-responsive-page .function-right,
+  .battle-responsive-page .toolbar .left,
+  .battle-responsive-page .toolbar .right {
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .battle-responsive-page .toolbar .right,
+  .battle-responsive-page .function-right {
+    justify-content: flex-start;
+  }
+
+  .battle-responsive-page .header-left,
+  .battle-responsive-page .header-title,
+  .battle-responsive-page .stat-item,
+  .battle-responsive-page .club-name,
+  .battle-responsive-page .member-name,
+  .battle-responsive-page .player-info-detail,
+  .battle-responsive-page .hero-modal-name {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .battle-responsive-page .action-btn,
+  .battle-responsive-page .function-section .n-button,
+  .battle-responsive-page .toolbar .n-button {
+    min-height: 44px;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .battle-responsive-page .function-section .n-date-picker,
+  .battle-responsive-page .function-section .ant-picker {
+    flex: 1 1 160px;
+    width: min(100%, 220px);
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page .club-warrank-card {
+    width: 100%;
+  }
+
+  .battle-responsive-page .club-vs-container {
+    display: flex !important;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page .club-info {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page .club-name-row {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .battle-responsive-page .club-name {
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .battle-responsive-page .club-announce-text {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: anywhere;
+  }
+
+  .battle-responsive-page .club-stats.announcement {
+    box-sizing: border-box;
+    max-width: 100% !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  .battle-responsive-page .vs-badge-container {
+    flex-direction: row;
+    justify-content: center;
+    gap: 8px;
+    padding: 4px 12px;
+  }
+
+  .battle-responsive-page .function-section .function-right {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .battle-responsive-page .table-content {
+    width: 100%;
+  }
+
+  .battle-responsive-page .table-container {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: auto;
+  }
+
+  .battle-responsive-page .n-data-table,
+  .battle-responsive-page .n-data-table-wrapper {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page .n-data-table-base-table-body {
+    max-width: 100%;
+    touch-action: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .battle-responsive-modal.n-card {
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column;
+    width: min(
+      800px,
+      calc(
+        100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 24px
+      )
+    ) !important;
+    max-width: calc(
+      100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 24px
+    ) !important;
+    max-height: calc(
+      100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px
+    ) !important;
+    max-height: calc(
+      100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px
+    ) !important;
+    overflow: hidden;
+  }
+
+  .battle-responsive-modal.n-card > .n-card-header {
+    flex: 0 0 auto;
+    align-items: flex-start;
+  }
+
+  .battle-responsive-modal .n-card-header__close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .battle-responsive-modal .n-card-header__main,
+  .battle-responsive-modal .n-card-header__extra {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .battle-responsive-modal.n-card > .n-card__content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .battle-responsive-modal.n-card > .n-card__footer,
+  .battle-responsive-modal.n-card > .n-card__action {
+    flex: 0 0 auto;
+  }
+
+  .battle-responsive-modal .player-info-content,
+  .battle-responsive-modal .player-info-main,
+  .battle-responsive-modal .player-info-detail,
+  .battle-responsive-modal .battle-details,
+  .battle-responsive-modal .hero-modal-content,
+  .battle-responsive-modal .hero-modal-header,
+  .battle-responsive-modal .hero-modal-basic,
+  .battle-responsive-modal .hero-modal-details,
+  .battle-responsive-modal .hero-modal-equipment,
+  .battle-responsive-modal .hero-list {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-modal .player-info-main,
+  .battle-responsive-modal .hero-modal-header {
+    flex-wrap: wrap !important;
+  }
+
+  .battle-responsive-modal .player-info-detail,
+  .battle-responsive-modal .hero-modal-basic {
+    flex: 1 1 180px;
+    overflow-wrap: anywhere;
+  }
+
+  .battle-responsive-modal .battle-details,
+  .battle-responsive-modal .hero-modal-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .battle-responsive-modal .hero-list {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .battle-responsive-modal .hero-item,
+  .battle-responsive-modal .hero-info,
+  .battle-responsive-modal .hero-name,
+  .battle-responsive-modal .hero-stats {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-modal .hero-name {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .battle-responsive-modal .action-section {
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .battle-responsive-modal .action-section > div[style*="display: flex"] {
+    display: flex !important;
+    flex: 1 1 100% !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .battle-responsive-modal .fight-count-container {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin-right: 0;
+    box-sizing: border-box;
+  }
+
+  .battle-responsive-modal .fight-count-label,
+  .battle-responsive-modal .fight-count-hint {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    white-space: normal;
+  }
+
+  .battle-responsive-modal .fight-count-input {
+    width: 100% !important;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-modal .fight-count-hint {
+    grid-column: 1 / -1;
+  }
+
+  .battle-responsive-modal .action-section .n-button {
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    max-width: 100%;
+    margin: 0 !important;
+    white-space: normal;
+  }
+
+  .battle-responsive-modal .hero-modal-details,
+  .battle-responsive-modal .hero-modal-equipment {
+    overflow-wrap: anywhere;
+  }
+
+  .battle-responsive-page.camp-challenge-container {
+    padding: 8px;
+  }
+
+  .battle-responsive-page.camp-challenge-container .toolbar .left {
+    gap: 8px;
+  }
+
+  .battle-responsive-page.camp-challenge-container
+    .toolbar
+    .left
+    > .n-radio-group {
+    display: flex;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    width: 100%;
+    min-width: 0;
+    height: auto !important;
+    margin-left: 0 !important;
+  }
+
+  .battle-responsive-page.camp-challenge-container
+    .toolbar
+    .left
+    > .n-radio-group
+    .n-radio-button {
+    min-height: 44px;
+  }
+
+  .battle-responsive-page.camp-challenge-container .toolbar .right {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .battle-responsive-page.camp-challenge-container .toolbar .right .n-button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .battle-responsive-page.camp-challenge-container .camp-main-tabs {
+    display: none !important;
+  }
+
+  .battle-responsive-page.camp-challenge-container .camp-mobile-view-select {
+    display: block !important;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--n-border-color, #d9d9d9);
+    border-radius: 8px;
+    color: var(--n-text-color, #222);
+    background: var(--n-color, #fff);
+    font: inherit;
+  }
+
+  .battle-responsive-page.camp-challenge-container .club-name-row {
+    flex-wrap: wrap;
+  }
+
+  .battle-responsive-page.camp-challenge-container .banner-sides-row {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column !important;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .battle-responsive-page.camp-challenge-container .side-score-box,
+  .battle-responsive-page.camp-challenge-container .oppo-score-box {
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page.camp-challenge-container .club-title {
+    box-sizing: border-box;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .battle-responsive-page.camp-challenge-container .club-title > span {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    text-align: center;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .battle-responsive-page.camp-challenge-container .score-display {
+    flex-wrap: wrap;
+    justify-content: center;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page.camp-challenge-container .score-num {
+    max-width: 100%;
+    font-size: clamp(24px, 10vw, 38px);
+    text-align: center;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .battle-responsive-page.camp-challenge-container .combat-rate-display {
+    box-sizing: border-box;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding: 4px 8px;
+    text-align: center;
+  }
+
+  .battle-responsive-page.camp-challenge-container .combat-rate-display > span {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .battle-responsive-page.camp-challenge-container
+    .combat-rate-display
+    .rate-detail {
+    flex: 1 1 100%;
+  }
+
+  .battle-responsive-page.camp-challenge-container .stats-panels-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .battle-responsive-page.camp-challenge-container .stat-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .battle-responsive-page.camp-challenge-container .metric-card,
+  .battle-responsive-page.camp-challenge-container .metric-value {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .battle-responsive-page.camp-challenge-container .map-control-bar {
+    align-items: stretch;
+    padding: 10px;
+  }
+
+  .battle-responsive-page.camp-challenge-container .map-side-indicator,
+  .battle-responsive-page.camp-challenge-container .map-metrics-summary,
+  .battle-responsive-page.camp-challenge-container .map-filters-group {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .battle-responsive-page.camp-challenge-container .map-side-indicator {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .battle-responsive-page.camp-challenge-container .map-metrics-summary {
+    gap: 6px;
+  }
+
+  .battle-responsive-page.camp-challenge-container .map-filters-group {
+    gap: 8px;
+  }
+
+  .battle-responsive-page.camp-challenge-container
+    .map-filters-group
+    .n-radio-group {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-content: start;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: auto !important;
+  }
+
+  .battle-responsive-page.camp-challenge-container
+    .map-filters-group
+    .n-radio-button {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+
+  .battle-responsive-page.camp-challenge-container
+    .map-filters-group
+    .n-select {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  .battle-responsive-page.camp-challenge-container .fortress-grid,
+  .battle-responsive-page.camp-challenge-container .group-rank-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    min-width: 0;
+  }
+
+  .battle-responsive-page.camp-challenge-container .fortress-card,
+  .battle-responsive-page.camp-challenge-container .group-rank-card {
+    min-width: 0;
+  }
+
+  .battle-responsive-page.camp-challenge-container .member-detail,
+  .battle-responsive-page.camp-challenge-container .member-name,
+  .battle-responsive-page.camp-challenge-container .club-title-row {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .battle-responsive-page.camp-challenge-container .comparison-bar-header,
+  .battle-responsive-page.camp-challenge-container .progress-info,
+  .battle-responsive-page.camp-challenge-container .table-header-title,
+  .battle-responsive-page.camp-challenge-container
+    .table-header-title
+    .header-left,
+  .battle-responsive-page.camp-challenge-container .header-right-sort,
+  .battle-responsive-page.camp-challenge-container .attendance-header,
+  .battle-responsive-page.camp-challenge-container .att-title-group,
+  .battle-responsive-page.camp-challenge-container .att-actions {
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page.camp-challenge-container .attendance-header,
+  .battle-responsive-page.camp-challenge-container .att-actions,
+  .battle-responsive-page.camp-challenge-container .header-right-sort {
+    width: 100%;
+  }
+
+  .battle-responsive-page.camp-challenge-container .att-actions {
+    gap: 8px;
+  }
+
+  .battle-responsive-page.camp-challenge-container .att-actions .n-button {
+    flex: 1 1 100%;
+    min-height: 44px;
+    white-space: normal;
+  }
+
+  .battle-responsive-page.camp-challenge-container .attendance-control-panel,
+  .battle-responsive-page.camp-challenge-container .attendance-body,
+  .battle-responsive-page.camp-challenge-container .unattacked-preview-box,
+  .battle-responsive-page.camp-challenge-container .unattacked-tags {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page.camp-challenge-container .attendance-control-panel {
+    width: 100%;
+  }
+
+  .battle-responsive-page.camp-challenge-container .unattacked-tags {
+    align-items: flex-start;
+  }
+
+  .battle-responsive-page.camp-challenge-container .member-reminder-tag {
+    box-sizing: border-box;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    height: auto !important;
+    white-space: normal;
+  }
+
+  .battle-responsive-page.camp-challenge-container
+    .member-reminder-tag
+    .n-tag__content {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    line-height: 1.45;
+  }
+
+  .battle-responsive-page.camp-challenge-container .comparison-bar-header {
+    align-items: flex-start;
+    gap: 4px 8px;
+  }
+
+  .battle-responsive-page.camp-challenge-container .bar-center-title {
+    flex: 1 1 100%;
+    order: -1;
+    text-align: left;
+  }
+
+  .battle-responsive-page.camp-challenge-container
+    .header-right-sort
+    .n-radio-group {
+    display: flex;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 4px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: auto !important;
+  }
+
+  .battle-responsive-page.camp-challenge-container
+    .header-right-sort
+    .n-radio-button {
+    min-height: 44px;
+  }
+
+  .battle-responsive-page.camp-challenge-container .schedule-chips {
+    flex-wrap: wrap;
+  }
+
+  .battle-responsive-page.camp-challenge-container .lineup-cards-wrapper {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .battle-responsive-page.camp-challenge-container .hero-lineup-card {
+    flex: 1 1 160px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .battle-responsive-page.camp-challenge-container .hero-card-header {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+
+  .battle-responsive-page.camp-challenge-container .duel-content {
+    padding: 0;
+    min-width: 0;
+  }
+
+  .battle-responsive-modal .duel-player-header {
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .battle-responsive-modal .duel-player-info,
+  .battle-responsive-modal .duel-player-info h3 {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .battle-responsive-modal .personal-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .battle-responsive-modal .combat-item {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .battle-responsive-modal .combat-left,
+  .battle-responsive-modal .combat-center,
+  .battle-responsive-modal .combat-right {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-modal .combat-left,
+  .battle-responsive-modal .combat-center {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    margin: 0;
+  }
+
+  .battle-responsive-modal .combat-right {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+
+  .battle-responsive-modal .enemy-name,
+  .battle-responsive-modal .enemy-power {
+    overflow-wrap: anywhere;
+  }
+
+  .battle-responsive-page.fight-pvp-container .content-section,
+  .battle-responsive-page.fight-pvp-container .opponent-main-layout,
+  .battle-responsive-page.fight-pvp-container .left-card,
+  .battle-responsive-page.fight-pvp-container .right-card,
+  .battle-responsive-page.fight-pvp-container .opponent-info-table,
+  .battle-responsive-page.fight-pvp-container .info-table {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page.fight-pvp-container .opponent-main-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+  }
+
+  .battle-responsive-page.fight-pvp-container .left-card,
+  .battle-responsive-page.fight-pvp-container .right-card {
+    flex: 1 1 auto;
+  }
+
+  .battle-responsive-page.fight-pvp-container .info-table {
+    table-layout: fixed;
+  }
+
+  .battle-responsive-page.fight-pvp-container .info-table .avatar-cell {
+    width: 64px;
+    padding: 4px;
+  }
+
+  .battle-responsive-page.fight-pvp-container .info-table .label-cell {
+    width: 76px;
+    padding: 2px 4px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .battle-responsive-page.fight-pvp-container .info-table .value-cell {
+    height: auto;
+    min-width: 0 !important;
+    max-width: 100%;
+    padding: 4px 6px;
+    line-height: 1.35;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .battle-responsive-page.fight-pvp-container .info-table .value-cell .n-tag {
+    box-sizing: border-box;
+    max-width: 100%;
+    white-space: normal;
+    vertical-align: middle;
+  }
+
+  .battle-responsive-page.fight-pvp-container
+    .info-table
+    .value-cell
+    .n-tag__content {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .battle-responsive-page.fight-pvp-container .info-table .lineup {
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page.apex-challenge-container .toolbar .left {
+    flex: 1 1 100%;
+  }
+
+  .battle-responsive-page.apex-challenge-container .main-content,
+  .battle-responsive-page.apex-challenge-container .tab-content {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page.apex-challenge-container .tab-content > *,
+  .battle-responsive-page.apex-challenge-container .tab-content .n-card {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page.apex-challenge-container .toolbar .left .n-select {
+    flex: 1 1 176px;
+    width: min(100%, 220px) !important;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page.apex-challenge-container .toolbar .right {
+    width: 100%;
+  }
+
+  .battle-responsive-page.apex-challenge-container .toolbar .right .n-button {
+    min-height: 44px;
+  }
+
+  .battle-responsive-page.apex-challenge-container .vote-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
+  }
+
+  .battle-responsive-page.apex-challenge-container .apex-reset-grid {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .battle-responsive-page.apex-challenge-container .stat-card {
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .battle-responsive-page.apex-challenge-container .stat-icon {
+    box-sizing: border-box;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    font-size: 22px;
+  }
+
+  .battle-responsive-page.apex-challenge-container .stat-info {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page.apex-challenge-container .stat-label,
+  .battle-responsive-page.apex-challenge-container .stat-value2 {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .battle-responsive-page.apex-challenge-container .stat-value2 {
+    font-size: clamp(16px, 5vw, 22px);
+  }
+
+  .battle-responsive-page.apex-challenge-container .season-banner {
+    box-sizing: border-box;
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding: 16px;
+    overflow: visible !important;
+  }
+
+  .battle-responsive-page.apex-challenge-container .season-banner::before {
+    right: 8px;
+    top: -12px;
+    font-size: 64px;
+  }
+
+  .battle-responsive-page.apex-challenge-container .banner-left,
+  .battle-responsive-page.apex-challenge-container .banner-sub {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .battle-responsive-page.apex-challenge-container .banner-right {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page.apex-challenge-container .banner-stat {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .battle-responsive-page.apex-challenge-container .banner-num,
+  .battle-responsive-page.apex-challenge-container .banner-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .battle-responsive-modal .vote-dialog-body {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-modal .vote-dialog-tip {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .battle-responsive-modal .vote-quantity {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    align-items: center;
+    justify-items: stretch;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-modal .vote-quantity .vote-num {
+    grid-column: 1 / -1;
+    order: -1;
+    min-width: 0;
+    max-width: 100%;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  .battle-responsive-modal .vote-quantity .n-button,
+  .battle-responsive-modal .vote-dialog-body .n-space .n-button {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .battle-responsive-modal .vote-dialog-body .n-space .n-space {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex-wrap: wrap !important;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-modal
+    .vote-dialog-body
+    .n-space
+    .n-space
+    > div[role="none"] {
+    box-sizing: border-box;
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page--salt-v2 .table-content {
+    overflow-x: hidden !important;
+    overflow-y: hidden;
+  }
+
+  .battle-responsive-page--salt-v2 .announcement-section,
+  .battle-responsive-page--salt-v2 .alliance-tabs-section {
+    box-sizing: border-box;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .battle-responsive-page--salt-v2 .alliance-tabs-section {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px;
+    justify-content: stretch !important;
+    overflow: visible;
+  }
+
+  .battle-responsive-page--salt-v2 .alliance-tabs-section .alliance-tab {
+    flex: 1 1 100px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 44px;
+    white-space: normal;
+  }
+
+  .battle-responsive-page--salt-v2 .table-container {
+    box-sizing: border-box;
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: auto;
+  }
+
+  .battle-responsive-page--salt-v2 .table-container .n-data-table,
+  .battle-responsive-page--salt-v2 .table-container .n-data-table-wrapper {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page.legion-war-map-container .main-content-layout {
+    display: flex !important;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    height: auto !important;
+    min-height: 0;
+    max-width: 100%;
+    overflow: visible !important;
+  }
+
+  .battle-responsive-page.legion-war-map-container .map-container-wrapper {
+    box-sizing: border-box;
+    flex: 0 0 auto !important;
+    width: 100%;
+    min-width: 0;
+    height: 400px !important;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page.legion-war-map-container .map-container,
+  .battle-responsive-page.legion-war-map-container .mapCanvas {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .battle-responsive-page.legion-war-map-container .side-info-panel {
+    box-sizing: border-box;
+    width: 100% !important;
+    min-width: 0;
+    height: auto !important;
+    max-height: 55dvh;
+    overflow: hidden;
+    border-left: 0 !important;
+    border-top: 1px solid #eee;
+  }
+
+  .battle-responsive-page.legion-war-map-container
+    .side-info-panel
+    .legion-list {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-height: 55dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .battle-responsive-page.legion-war-map-container .stats-section {
+    display: flex;
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .battle-responsive-page.legion-war-map-container .stat-item {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .battle-responsive-page.legion-war-map-container .stat-item .n-button {
+    flex: 1 1 140px;
+  }
+
+  .battle-responsive-page.legion-war-statistics-container .function-left {
+    display: flex;
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .battle-responsive-page.legion-war-statistics-container
+    .function-left
+    .n-radio-group {
+    display: flex;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 4px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: auto !important;
+  }
+
+  .battle-responsive-page.camp-challenge-container
+    .n-radio-group
+    > .n-radio-group__splitor,
+  .battle-responsive-page.legion-war-statistics-container
+    .n-radio-group
+    > .n-radio-group__splitor {
+    display: none !important;
+  }
+
+  .battle-responsive-page.legion-war-statistics-container
+    .function-left
+    .n-radio-button {
+    min-height: 44px;
+  }
+
+  .battle-responsive-page.legion-war-statistics-container
+    .function-left
+    > .n-button {
+    flex: 1 1 140px;
+    min-height: 44px;
+  }
+
+  .battle-responsive-page.legion-war-statistics-container .table-content {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: auto;
+  }
+  .battle-responsive-modal > .n-card__footer .n-button,
+  .battle-responsive-modal > .n-card__action .n-button {
+    min-height: 44px;
+  }
+
+  .battle-responsive-modal .hero-modal-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-modal .hero-modal-avatar {
+    flex: 0 0 auto !important;
+    align-self: center;
+  }
+
+  .battle-responsive-modal .hero-modal-basic {
+    display: block;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .battle-responsive-modal .hero-modal-name {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .battle-responsive-modal .hero-modal-stats {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: start;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-modal .hero-modal-stats > * {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    white-space: normal;
+  }
+
+  .battle-responsive-modal .equipment-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-modal .equipment-item {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-modal .equipment-label {
+    flex: 0 0 60px;
+  }
+
+  .battle-responsive-modal .equipment-slots {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .battle-responsive-modal .equipment-slot {
+    flex: 0 0 20px;
+  }
+}

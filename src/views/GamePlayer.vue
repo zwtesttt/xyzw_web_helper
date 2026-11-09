@@ -1,5 +1,5 @@
 <template>
-  <div class="game-player">
+  <div class="game-player" :class="{ 'game-player--embedded': props.embedded }">
     <button class="back-btn" @click="goBack">← 返回</button>
 
     <div class="iframe-wrapper">
@@ -10,13 +10,15 @@
 
 <script setup>
 import { useRouter } from "vue-router";
+import { useWorkspaceNavigation } from "@/composables/useWorkspaceNavigation";
 
+const props = defineProps({ embedded: Boolean });
 const router = useRouter();
-
+const workspaceNavigation = useWorkspaceNavigation(router);
 const gameSrc = `${import.meta.env.BASE_URL}game/index.html`;
 
 function goBack() {
-  router.push("/admin/dashboard");
+  workspaceNavigation.push("/admin/dashboard");
 }
 </script>
 
@@ -56,6 +58,12 @@ function goBack() {
   font-size: 14px;
   cursor: pointer;
   transition: background 0.2s;
+}
+
+.game-player--embedded {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
 }
 
 .back-btn:hover {

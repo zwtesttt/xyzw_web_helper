@@ -569,16 +569,19 @@ watch(
 
 @media (max-width: 768px) {
   .card-header {
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    text-align: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    text-align: left;
     align-items: center;
+    justify-content: space-between;
   }
 
   .team-selector {
-    justify-content: center;
+    margin-left: auto;
+    justify-content: flex-end;
     flex-wrap: wrap;
-    gap: var(--spacing-xs);
+    gap: 5px;
   }
 
   .heroes-container {

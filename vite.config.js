@@ -138,6 +138,10 @@ export default defineConfig(async () => {
       open: true,
       host: true,
       proxy: {
+        "/api/server": {
+          target: "http://127.0.0.1:3001",
+          changeOrigin: false,
+        },
         // 手机号验证码接口需要以 ucenter-app-server Host 路由。
         "/api/hortor-ucenter": {
           target: "https://comb-platform.hortorgames.com",

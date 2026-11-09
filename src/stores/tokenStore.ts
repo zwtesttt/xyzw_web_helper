@@ -991,6 +991,12 @@ export const useTokenStore = defineStore("tokens", () => {
     }
   };
 
+  const addMessageListener = (tokenId: string, listener: (message: any) => void) => {
+    const client = wsConnections.value[tokenId]?.client;
+    if (!client || typeof client.addMessageListener !== "function") return () => {};
+    return client.addMessageListener(listener);
+  };
+
   // 设置是否显示消息
   const setShowMsg = (show: any) => {
     if (selectedToken.value) {
@@ -1674,6 +1680,7 @@ export const useTokenStore = defineStore("tokens", () => {
     sendMessage,
     sendMessageWithPromise,
     setMessageListener,
+    addMessageListener,
     setShowMsg,
     sendHeartbeat,
     sendGetRoleInfo,

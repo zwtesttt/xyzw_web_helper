@@ -135,3 +135,18 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Hosted server runtime credentials and persistent database
+render-backend/data/
+render-backend/hosted.sqlite*
+render-backend/master.key
+
+# Android Gradle outputs and local machine configuration
+android-client/.gradle/
+android-client/local.properties
+android-client/**/build/
+android-client/.cxx/
+android-client/**/*.jks
+android-client/**/*.keystore
+android-client/keystore*.jks
+android-client/keystore*.keystore

@@ -1,5 +1,5 @@
 <template>
-  <MyCard class="club-info" :status-class="{ active: !!club }">
+  <MyCard class="club-info battle-responsive-page" :status-class="{ active: !!club }">
     <template #icon>
       <img src="/icons/1733492491706152.png" alt="俱乐部图标" />
     </template>
@@ -31,6 +31,7 @@
         <!-- 申请列表悬浮界面 -->
         <NModal
           v-model:show="showApplyList"
+          class="battle-responsive-modal"
           title="俱乐部申请列表"
           :mask-closable="true"
           :show-close-button="true"
@@ -418,6 +419,7 @@
   <!-- 玩家信息模态框 -->
   <NModal
     v-model:show="showPlayerInfoModal"
+    class="battle-responsive-modal"
     preset="card"
     title="成员信息"
     :style="{ width: '800px' }"
@@ -548,7 +550,7 @@
   <!-- 武将详情模态框 -->
   <NModal
     v-model:show="showHeroModal"
-    class="hero-detail-modal"
+    class="hero-detail-modal battle-responsive-modal"
     preset="card"
     title="武将详情"
     :style="{ width: '600px' }"
@@ -579,7 +581,7 @@
       </div>
 
       <div class="hero-modal-details">
-        <NDescriptions label-placement="left" column="3" bordered>
+        <NDescriptions label-placement="left" :column="isMobileBattleLayout ? 1 : 3" bordered>
           <NDescriptionsItem label="战力">
             {{ formatNumber(heroModealTemp.power) }}
           </NDescriptionsItem>
@@ -712,6 +714,7 @@ import {
   Skull,
 } from "@vicons/ionicons5";
 
+import { useMediaQuery } from "@vueuse/core";
 import html2canvas from "html2canvas";
 import {
   NAlert,
@@ -748,6 +751,8 @@ import { downloadCanvasAsImage } from "@/utils/imageExport";
 import ClubHistoryRecords from "./ClubHistoryRecords.vue";
 import ClubIslandPanel from "./ClubIslandPanel.vue";
 import ClubWeirdTowerInfo from "./ClubWeirdTowerInfo.vue";
+
+const isMobileBattleLayout = useMediaQuery("(max-width: 768px)");
 
 const tokenStore = useTokenStore();
 const message = useMessage();

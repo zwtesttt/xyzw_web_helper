@@ -1,3 +1,5 @@
+import { toBeijingDate } from "../towerActId.js";
+
 /**
  * 营地挑战类任务
  * 包含: batchCampChallenge, batchCampChallengePet, batchCampClaimTasks
@@ -9,6 +11,8 @@
  * @returns {object} 任务函数集合
  */
 export function createTasksCampChallenge(deps) {
+  const now = deps.now || (() => new Date());
+  const logError = deps.onError || ((...args) => globalThis.console.error(...args));
   const {
     selectedTokens,
     tokens,
@@ -110,11 +114,11 @@ export function createTasksCampChallenge(deps) {
         );
 
         // 检查今日挑战次数
-        const now = new Date();
+        const currentDate = toBeijingDate(now());
         const todayKey =
-          String(now.getFullYear() % 100).padStart(2, "0") +
-          String(now.getMonth() + 1).padStart(2, "0") +
-          String(now.getDate()).padStart(2, "0");
+          String(currentDate.getUTCFullYear() % 100).padStart(2, "0") +
+          String(currentDate.getUTCMonth() + 1).padStart(2, "0") +
+          String(currentDate.getUTCDate()).padStart(2, "0");
         const siege = res?.siege || {};
         const attackMap = siege.attackMap || {};
         const todayAttack = attackMap[todayKey] || {};
@@ -259,7 +263,7 @@ export function createTasksCampChallenge(deps) {
 
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -391,7 +395,7 @@ export function createTasksCampChallenge(deps) {
 
           tokenStatus.value[tokenId] = "completed";
         } catch (error) {
-          console.error(error);
+          logError(error);
           tokenStatus.value[tokenId] = "failed";
           addLog({
             time: new Date().toLocaleTimeString(),
@@ -488,7 +492,7 @@ export function createTasksCampChallenge(deps) {
 
         tokenStatus.value[tokenId] = "completed";
       } catch (error) {
-        console.error(error);
+        logError(error);
         tokenStatus.value[tokenId] = "failed";
         addLog({
           time: new Date().toLocaleTimeString(),
